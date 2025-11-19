@@ -16,6 +16,7 @@ namespace Engine
 
 	private:
 
-		GLFWwindow* m_Window;
+		// Pointer to the GLFW window; initialized to nullptr for safe shutdown handling.
+		GLFWwindow* m_Window = nullptr;
 	};
 }
