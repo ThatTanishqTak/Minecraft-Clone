@@ -1,5 +1,7 @@
 #include "Application.h"
 
+#include <iostream>
+
 #include <GLFW/glfw3.h>
 
 namespace Engine
@@ -20,6 +22,12 @@ namespace Engine
         Shutdown();
 
         std::cout << "Application shutdown complete" << std::endl;
+    }
+
+    void Application::RegisterGameLayer(Layer* gameLayer)
+    {
+        // The game is responsible for the lifetime of the layer; the engine only stores a pointer.
+        m_GameLayer = gameLayer;
     }
 
     bool Application::Initialize()
@@ -69,19 +77,30 @@ namespace Engine
         if (!m_IsInitialized)
         {
             // Without initialization we cannot enter the main loop safely.
-            std::cout << "Application failed to initialize; skipping Run loop" << std::endl;
+            std::cout << "Application failed to initialize" << std::endl;
+
+            return;
+        }
+
+        if (m_GameLayer == nullptr)
+        {
+            // Running without a game layer offers no meaningful work, so we exit early.
+            std::cout << "No game layer registered" << std::endl;
 
             return;
         }
 
         while (!m_Window.ShouldWindowClose())
         {
+            // Update the game state before rendering to ensure visuals reflect the latest logic.
+            m_GameLayer->Update();
+
+            // Render the current frame from the game layer.
+            m_GameLayer->Render();
+
+            // Present the rendered frame to the screen.
             glfwSwapBuffers(m_Window.GetNativeWindow());
             glfwPollEvents();
-
-            // Update
-
-            // Render
         }
     }
 }

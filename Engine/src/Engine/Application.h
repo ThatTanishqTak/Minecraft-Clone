@@ -1,8 +1,7 @@
 #pragma once
 
-#include <iostream>
-
 #include "Engine/Window/Window.h"
+#include "Engine/Layer/Layer.h"
 
 namespace Engine
 {
@@ -12,6 +11,9 @@ namespace Engine
         Application();
         ~Application();
 
+        // Register a gameplay layer so the engine can drive its lifecycle.
+        void RegisterGameLayer(Layer* gameLayer);
+
         void Run();
 
     private:
@@ -20,6 +22,7 @@ namespace Engine
 
     private:
         Window m_Window;
+        Layer* m_GameLayer = nullptr;
         bool m_IsInitialized = false;
         bool m_IsGlfwInitialized = false;
     };

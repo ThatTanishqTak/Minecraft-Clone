@@ -9,7 +9,6 @@ add_library(Engine SHARED)
 file(GLOB_RECURSE ENGINE_SOURCES
     src/*.cpp
     src/*.h
-    src/*.hpp
 )
 
 target_sources(Engine PRIVATE ${ENGINE_SOURCES})
