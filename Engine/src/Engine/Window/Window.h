@@ -4,19 +4,19 @@ struct GLFWwindow;
 
 namespace Engine
 {
-	class Window
-	{
-	public:
-		void Initialize();
-		void Shutdown();
+    class Window
+    {
+    public:
+        bool Initialize();
+        void Shutdown();
 
-		bool ShouldWindowClose();
+        bool ShouldWindowClose();
 
-		GLFWwindow* GetNativeWindow() { return m_Window; }
+        GLFWwindow* GetNativeWindow() { return m_Window; }
 
-	private:
+    private:
 
-		// Pointer to the GLFW window; initialized to nullptr for safe shutdown handling.
-		GLFWwindow* m_Window = nullptr;
-	};
+        // Pointer to the GLFW window; initialized to nullptr for safe shutdown handling.
+        GLFWwindow* m_Window = nullptr;
+    };
 }

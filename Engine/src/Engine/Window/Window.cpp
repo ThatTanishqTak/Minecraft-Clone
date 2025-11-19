@@ -7,28 +7,37 @@
 
 namespace Engine
 {
-    void Window::Initialize()
+    bool Window::Initialize()
     {
-        m_Window = glfwCreateWindow(1920, 1080, "Minecraft-Clone", nullptr, nullptr);
-        if (m_Window == nullptr)
+        // Create the window and defer storing it until we know initialization succeeded.
+        GLFWwindow* l_CreatedWindow = glfwCreateWindow(1920, 1080, "Minecraft-Clone", nullptr, nullptr);
+        if (l_CreatedWindow == nullptr)
         {
+            // Leave m_Window as nullptr so the shutdown path knows nothing was created.
             std::cout << "Failed to create GLFW window" << std::endl;
             glfwTerminate();
 
-            return;
+            return false;
         }
-        glfwMakeContextCurrent(m_Window);
 
+        glfwMakeContextCurrent(l_CreatedWindow);
         std::cout << "Window initialized" << std::endl;
 
-        if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+        bool l_IsGladInitialized = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
+        if (!l_IsGladInitialized)
         {
-            std::cout << "Failed to initialize GALD" << std::endl;
+            // Destroy the temporary window before nulling out the member to keep the shutdown path safe.
+            std::cout << "Failed to initialize GLAD" << std::endl;
+            glfwDestroyWindow(l_CreatedWindow);
 
-            return;
+            return false;
         }
 
+        m_Window = l_CreatedWindow;
+
         std::cout << "GLAD initialized" << std::endl;
+
+        return true;
     }
 
     void Window::Shutdown()
@@ -43,5 +52,14 @@ namespace Engine
         }
     }
 
-    bool Window::ShouldWindowClose() { return glfwWindowShouldClose(m_Window); }
+    bool Window::ShouldWindowClose()
+    {
+        // If m_Window is null, signal closure to avoid dereferencing a null pointer in the loop.
+        if (m_Window == nullptr)
+        {
+            return true;
+        }
+
+        return glfwWindowShouldClose(m_Window);
+    }
 }
