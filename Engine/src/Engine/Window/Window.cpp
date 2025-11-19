@@ -26,14 +26,13 @@ namespace Engine
         bool l_IsGladInitialized = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
         if (!l_IsGladInitialized)
         {
-            // Destroy the temporary window before nulling out the member to keep the shutdown path safe.
+            // GLAD failed, so destroy the window now and clear the pointer so shutdown never double-destroys it.
             std::cout << "Failed to initialize GLAD" << std::endl;
             glfwDestroyWindow(m_Window);
+            m_Window = nullptr;
 
             return false;
         }
-
-        m_Window = m_Window;
 
         std::cout << "GLAD initialized" << std::endl;
 
