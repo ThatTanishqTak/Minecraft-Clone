@@ -112,9 +112,22 @@ namespace Engine
 
     void Renderer::DrawPlaceholderGeometry()
     {
-        if (s_PlaceholderShader == nullptr || s_PlaceholderIndexBuffer == nullptr)
+        if (s_PlaceholderShader == nullptr || s_PlaceholderIndexBuffer == nullptr || s_VertexArrayObject == 0)
         {
             return;
         }
+
+        // Bind minimal state for drawing the placeholder quad.
+        glBindVertexArray(s_VertexArrayObject);
+        s_PlaceholderShader->Bind();
+        s_PlaceholderIndexBuffer->Bind();
+
+        // Issue a draw using the placeholder buffers to visualize a simple quad.
+        glDrawElements(GL_TRIANGLES, s_PlaceholderIndexBuffer->GetCount(), s_PlaceholderIndexBuffer->GetIndexType(), nullptr);
+
+        // Unbind resources to leave the OpenGL state clean for subsequent draws.
+        s_PlaceholderIndexBuffer->Unbind();
+        s_PlaceholderShader->Unbind();
+        glBindVertexArray(0);
     }
 }
