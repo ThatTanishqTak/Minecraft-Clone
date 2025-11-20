@@ -42,10 +42,14 @@ Minecraft-Clone/
 ├─ Engine/                              # Engine DLL
 │   ├─ src/
 │   │   └─ Engine/
-│   │       ├─ Application.cpp/.h
-│   │       └─ Window/
+│   │       ├─ Application.cpp/.h       # Core app loop and lifecycle
+│   │       ├─ Layer/                   # Layer system contracts
+│   │       │   └─ Layer.h
+│   │       ├─ Renderer/                # Minimal quad renderer scaffold
+│   │       │   ├─ Renderer.cpp/.h
+│   │       └─ Window/                  # GLFW + OpenGL context management
 │   │           ├─ Window.cpp/.h
-│   ├─ vendor/                           # Third-party libraries
+│   ├─ vendor/                          # Third-party libraries
 │   │   ├─ entt
 │   │   ├─ glad
 │   │   ├─ glfw
@@ -55,17 +59,17 @@ Minecraft-Clone/
 │   │   └─ yaml-cpp
 │   └─ CMakeLists.txt
 │
-├─ Game/                                 # Game EXE
-│   ├─ Assets/
+├─ Game/                                # Game EXE
+│   ├─ Assets/                          # Copied alongside binaries
 │   ├─ src/
-│   │   ├─ GameLayer.cpp/.h
-│   │   └─ EntryPoint.cpp
+│   │   ├─ GameLayer.cpp/.h             # Game-specific logic + rendering entry
+│   │   └─ EntryPoint.cpp               # Application bootstrap
 │   └─ CMakeLists.txt
 │
-├─ out/                                  # Build system output (CMake presets)
+├─ out/                                 # Build system output (CMake presets)
 │
-├─ CMakeLists.txt                        # Root build script
-├─ CMakePresets.json                     # Build configurations
+├─ CMakeLists.txt                       # Root build script
+├─ CMakePresets.json                    # Build configurations
 ├─ .gitignore
 ├─ .gitmodules
 ├─ LICENSE
