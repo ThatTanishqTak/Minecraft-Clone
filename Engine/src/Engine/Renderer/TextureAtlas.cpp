@@ -73,17 +73,15 @@ namespace Engine
                 if (it_Positive != m_TextureOrigins.end())
                 {
                     l_Min = glm::vec2(it_Positive->second.x / static_cast<float>(m_AtlasSize), it_Positive->second.y / static_cast<float>(m_AtlasSize));
-                    l_Max = glm::vec2((it_Positive->second.x + static_cast<float>(tileSize)) / static_cast<float>(m_AtlasSize), (it_Positive->second.y + static_cast<float>(tileSize)) / static_cast<float>(m_AtlasSize));
-                    l_Info.AtlasMins[l_PositiveIndex] = l_Min;
-                    l_Info.AtlasMaxs[l_PositiveIndex] = l_Max;
+                    l_Max = glm::vec2((it_Positive->second.x + static_cast<float>(tileSize)) / static_cast<float>(m_AtlasSize), 
+                        (it_Positive->second.y + static_cast<float>(tileSize)) / static_cast<float>(m_AtlasSize));
                 }
 
                 if (it_Negative != m_TextureOrigins.end())
                 {
                     l_Min = glm::vec2(it_Negative->second.x / static_cast<float>(m_AtlasSize), it_Negative->second.y / static_cast<float>(m_AtlasSize));
-                    l_Max = glm::vec2((it_Negative->second.x + static_cast<float>(tileSize)) / static_cast<float>(m_AtlasSize), (it_Negative->second.y + static_cast<float>(tileSize)) / static_cast<float>(m_AtlasSize));
-                    l_Info.AtlasMins[l_NegativeIndex] = l_Min;
-                    l_Info.AtlasMaxs[l_NegativeIndex] = l_Max;
+                    l_Max = glm::vec2((it_Negative->second.x + static_cast<float>(tileSize)) / static_cast<float>(m_AtlasSize), 
+                        (it_Negative->second.y + static_cast<float>(tileSize)) / static_cast<float>(m_AtlasSize));
                 }
             }
 

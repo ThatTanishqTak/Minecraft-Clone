@@ -24,7 +24,7 @@ namespace Engine
             it_Command.ShaderProgram->Bind();
             glBindVertexArray(it_Command.VertexArrayObject);
 
-            // Bind an atlas texture if the command requests one.
+            // Bind an optional texture if the command requests one.
             if (it_Command.TextureId != 0)
             {
                 glActiveTexture(GL_TEXTURE0);

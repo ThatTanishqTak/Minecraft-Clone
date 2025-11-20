@@ -5,7 +5,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
 #include "Engine/Core/Core.h"
@@ -40,8 +39,7 @@ namespace Engine
     {
         bool IsOpaque = false;
         float MaterialFlags = 0.0f;
-        std::array<glm::vec2, 6> AtlasMins = {};
-        std::array<glm::vec2, 6> AtlasMaxs = {};
+        glm::vec3 Color = glm::vec3(1.0f);
     };
 
     // Keep a fixed-size chunk that stores block data in a flat array.
@@ -69,9 +67,7 @@ namespace Engine
     {
         glm::vec3 Position;
         glm::vec3 Normal;
-        glm::vec2 LocalTexCoord;
-        glm::vec2 AtlasMin;
-        glm::vec2 AtlasMax;
+        glm::vec3 Color;
         float MaterialFlags = 0.0f;
     };
 

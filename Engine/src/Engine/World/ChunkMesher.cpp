@@ -97,25 +97,25 @@ namespace Engine
             return l_Cell;
         }
 
-        void AppendQuad(ChunkMesh& mesh, const glm::vec3& origin, const glm::vec3& deltaU, const glm::vec3& deltaV, const glm::vec3& normal, 
-            bool isPositive, const glm::vec2& atlasMin, const glm::vec2& atlasMax, float materialFlags)
+        void AppendQuad(ChunkMesh& mesh, const glm::vec3& origin, const glm::vec3& deltaU, const glm::vec3& deltaV, const glm::vec3& normal,
+            bool isPositive, const glm::vec3& color, float materialFlags)
         {
             std::uint32_t l_BaseIndex = static_cast<std::uint32_t>(mesh.Vertices.size());
 
             // Build the quad vertices in an order that keeps the normal consistent and carries atlas data per vertex.
             if (isPositive)
             {
-                mesh.Vertices.push_back({ origin, normal, glm::vec2(0.0f, 0.0f), atlasMin, atlasMax, materialFlags });
-                mesh.Vertices.push_back({ origin + deltaU, normal, glm::vec2(1.0f, 0.0f), atlasMin, atlasMax, materialFlags });
-                mesh.Vertices.push_back({ origin + deltaU + deltaV, normal, glm::vec2(1.0f, 1.0f), atlasMin, atlasMax, materialFlags });
-                mesh.Vertices.push_back({ origin + deltaV, normal, glm::vec2(0.0f, 1.0f), atlasMin, atlasMax, materialFlags });
+                mesh.Vertices.push_back({ origin, normal, color, materialFlags });
+                mesh.Vertices.push_back({ origin + deltaU, normal, color, materialFlags });
+                mesh.Vertices.push_back({ origin + deltaU + deltaV, normal, color, materialFlags });
+                mesh.Vertices.push_back({ origin + deltaV, normal, color, materialFlags });
             }
             else
             {
-                mesh.Vertices.push_back({ origin, normal, glm::vec2(0.0f, 0.0f), atlasMin, atlasMax, materialFlags });
-                mesh.Vertices.push_back({ origin + deltaV, normal, glm::vec2(0.0f, 1.0f), atlasMin, atlasMax, materialFlags });
-                mesh.Vertices.push_back({ origin + deltaU + deltaV, normal, glm::vec2(1.0f, 1.0f), atlasMin, atlasMax, materialFlags });
-                mesh.Vertices.push_back({ origin + deltaU, normal, glm::vec2(1.0f, 0.0f), atlasMin, atlasMax, materialFlags });
+                mesh.Vertices.push_back({ origin, normal, color, materialFlags });
+                mesh.Vertices.push_back({ origin + deltaV, normal, color, materialFlags });
+                mesh.Vertices.push_back({ origin + deltaU + deltaV, normal, color, materialFlags });
+                mesh.Vertices.push_back({ origin + deltaU, normal, color, materialFlags });
             }
 
             mesh.Indices.push_back(l_BaseIndex + 0);
@@ -261,8 +261,7 @@ namespace Engine
 
                         const BlockRenderInfo& l_RenderInfo = l_InfoIterator->second;
                         int l_FaceIndex = static_cast<int>(l_Cell.Face);
-                        AppendQuad(l_Mesh, l_Origin, l_DeltaU, l_DeltaV, l_Normal, l_Cell.IsPositive, l_RenderInfo.AtlasMins[l_FaceIndex], 
-                            l_RenderInfo.AtlasMaxs[l_FaceIndex], l_RenderInfo.MaterialFlags);
+                        AppendQuad(l_Mesh, l_Origin, l_DeltaU, l_DeltaV, l_Normal, l_Cell.IsPositive, l_RenderInfo.Color, l_RenderInfo.MaterialFlags);
 
                         for (int l_CoveredY = 0; l_CoveredY < l_Height; ++l_CoveredY)
                         {

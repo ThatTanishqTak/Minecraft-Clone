@@ -26,5 +26,5 @@ public:
 private:
     bool m_IsInitialized = false;
     Engine::Chunk m_Chunk;
-    std::unique_ptr<Engine::WorldRenderingService> m_WorldRenderer;
+    std::unique_ptr<Engine::WorldRenderer> m_WorldRenderer;
 };

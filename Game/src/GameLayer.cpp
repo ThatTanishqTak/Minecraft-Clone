@@ -13,7 +13,7 @@ bool GameLayer::Initialize()
         return true;
     }
 
-    m_WorldRenderer = std::make_unique<Engine::WorldRenderingService>();
+    m_WorldRenderer = std::make_unique<Engine::WorldRenderer>();
     if (m_WorldRenderer == nullptr || !m_WorldRenderer->Initialize())
     {
         //ENGINE_ERROR("Failed to initialize world rendering service");
