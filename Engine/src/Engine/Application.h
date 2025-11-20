@@ -24,6 +24,7 @@ namespace Engine
     private:
         Window m_Window;
         Layer* m_GameLayer = nullptr;
+
         bool m_IsInitialized = false;
         bool m_IsGlfwInitialized = false;
     };

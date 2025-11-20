@@ -1,6 +1,12 @@
 #pragma once
 
+#include <memory>
 #include <glad/glad.h>
+
+#include "Engine/Renderer/Buffers.h"
+#include "Engine/Renderer/RenderQueue.h"
+#include "Engine/Renderer/RendererCommands.h"
+#include "Engine/Renderer/Shader.h"
 
 namespace Engine
 {
@@ -17,12 +23,10 @@ namespace Engine
         static void DrawPlaceholderGeometry();
 
     private:
-        static bool CompileShader(GLuint shaderId, const char* shaderSource);
-        static bool LinkProgram(GLuint vertexShader, GLuint fragmentShader, GLuint programId);
-
-    private:
         static GLuint s_VertexArrayObject;
-        static GLuint s_VertexBufferObject;
-        static GLuint s_ShaderProgram;
+        static std::shared_ptr<VertexBuffer> s_PlaceholderVertexBuffer;
+        static std::shared_ptr<IndexBuffer> s_PlaceholderIndexBuffer;
+        static std::shared_ptr<Shader> s_PlaceholderShader;
+        static std::unique_ptr<RenderQueue> s_RenderQueue;
     };
 }
