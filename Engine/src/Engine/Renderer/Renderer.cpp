@@ -118,6 +118,13 @@ namespace Engine
         }
     }
 
+    RenderQueue* Renderer::GetRenderQueue()
+    {
+        // Provide the render queue to consumers while ensuring the static
+        // instance is exported from the Engine DLL boundary.
+        return s_RenderQueue.get();
+    }
+
     void Renderer::DrawPlaceholderGeometry()
     {
         if (s_RenderQueue == nullptr || s_PlaceholderShader == nullptr || s_PlaceholderIndexBuffer == nullptr)
