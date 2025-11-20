@@ -3,6 +3,8 @@
 
 int main()
 {
+    Engine::Application l_Application;
+
     GameLayer l_GameLayer{};
 
     // Initialize the game layer before handing it to the engine.
@@ -10,8 +12,6 @@ int main()
     {
         return -1;
     }
-
-    Engine::Application l_Application;
 
     // Allow the engine to drive the game layer lifecycle.
     l_Application.RegisterGameLayer(&l_GameLayer);

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Engine/Core/Log.h"
 #include "Engine/Application.h"
 #include "Engine/Layer/Layer.h"
 

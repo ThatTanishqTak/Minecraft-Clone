@@ -6,6 +6,7 @@
 #include <glad/glad.h>
 
 #include "Engine/Renderer/Renderer.h"
+#include "Engine/Core/Log.h"
 
 namespace Engine
 {
@@ -16,7 +17,7 @@ namespace Engine
         // Provide feedback on initialization result to aid debugging.
         if (m_IsInitialized)
         {
-            std::cout << "Application initialized" << std::endl;
+            ENGINE_TRACE("Application initialized");
         }
     }
 
@@ -24,7 +25,7 @@ namespace Engine
     {
         Shutdown();
 
-        std::cout << "Application shutdown complete" << std::endl;
+        ENGINE_TRACE("Application shutdown complete");
     }
 
     void Application::RegisterGameLayer(Layer* gameLayer)
@@ -35,18 +36,20 @@ namespace Engine
 
     bool Application::Initialize()
     {
+        Engine::Utilities::Log::Initialize();
+
         bool l_IsGlfwInitialized = glfwInit();
         if (!l_IsGlfwInitialized)
         {
             // Early return keeps the run loop from starting when GLFW is not available.
-            std::cout << "Failed to initialize GLFW" << std::endl;
+            ENGINE_ERROR("Failed to initialize GLFW");
 
             return false;
         }
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 
-        std::cout << "GLFW initialized" << std::endl;
+        ENGINE_TRACE("GLFW initialized");
 
         m_IsGlfwInitialized = true;
 
@@ -55,7 +58,7 @@ namespace Engine
         // If the window fails to initialize, mark application initialization as failed for safety.
         if (!l_IsWindowInitialized)
         {
-            std::cout << "Failed to initialize window" << std::endl;
+            ENGINE_ERROR("Failed to initialize window");
 
             return false;
         }
@@ -72,7 +75,7 @@ namespace Engine
         // Initialize the renderer after OpenGL context creation.
         if (!Renderer::Initialize())
         {
-            std::cout << "Failed to initialize renderer" << std::endl;
+            ENGINE_ERROR("Failed to initialize renderer");
 
             return false;
         }
@@ -89,7 +92,7 @@ namespace Engine
         if (m_IsGlfwInitialized)
         {
             glfwTerminate();
-            std::cout << "GLFW shutdown complete" << std::endl;
+            ENGINE_TRACE("GLFW shutdown complete");
         }
 
         m_Window.Shutdown();
@@ -100,7 +103,7 @@ namespace Engine
         if (!m_IsInitialized)
         {
             // Without initialization we cannot enter the main loop safely.
-            std::cout << "Application failed to initialize" << std::endl;
+            ENGINE_ERROR("Application failed to initialize");
 
             return;
         }
@@ -108,7 +111,7 @@ namespace Engine
         if (m_GameLayer == nullptr)
         {
             // Running without a game layer offers no meaningful work, so we exit early.
-            std::cout << "No game layer registered" << std::endl;
+            ENGINE_ERROR("No game layer registered");
 
             return;
         }

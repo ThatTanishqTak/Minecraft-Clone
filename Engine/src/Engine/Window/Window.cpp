@@ -1,9 +1,8 @@
 #include "Engine/Window/Window.h"
+#include "Engine/Core/Log.h"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-
-#include <iostream>
 
 namespace Engine
 {
@@ -14,27 +13,27 @@ namespace Engine
         if (m_Window == NULL)
         {
             // Leave m_Window as NULL so the shutdown path knows nothing was created.
-            std::cout << "Failed to create GLFW window" << std::endl;
+            ENGINE_ERROR("Failed to create GLFW window");
             glfwTerminate();
 
             return false;
         }
 
         glfwMakeContextCurrent(m_Window);
-        std::cout << "Window initialized" << std::endl;
+        ENGINE_TRACE("Window initialized");
 
         bool l_IsGladInitialized = gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
         if (!l_IsGladInitialized)
         {
             // GLAD failed, so destroy the window now and clear the pointer so shutdown never double-destroys it.
-            std::cout << "Failed to initialize GLAD" << std::endl;
+            ENGINE_ERROR("Failed to initialize GLAD");
             glfwDestroyWindow(m_Window);
             m_Window = nullptr;
 
             return false;
         }
 
-        std::cout << "GLAD initialized" << std::endl;
+        ENGINE_TRACE("GLAD initialized");
 
         return true;
     }
@@ -47,7 +46,7 @@ namespace Engine
             glfwDestroyWindow(m_Window);
             m_Window = NULL;
 
-            std::cout << "Window shutdown complete" << std::endl;
+            ENGINE_TRACE("Window shutdown complete");
         }
     }
 

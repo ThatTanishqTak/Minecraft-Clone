@@ -16,7 +16,7 @@ bool GameLayer::Initialize()
         return true;
     }
 
-    std::cout << "GameLayer initialized" << std::endl;
+    //GAME_TRACE("GameLayer initialized");
     m_IsInitialized = true;
 
     return m_IsInitialized;
@@ -54,6 +54,6 @@ void GameLayer::Shutdown()
         return;
     }
 
-    std::cout << "GameLayer shutdown complete" << std::endl;
+    //GAME_TRACE("GameLayer shutdown complete");
     m_IsInitialized = false;
 }
