@@ -5,6 +5,8 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
+#include "Engine/Input/Input.h"
+
 namespace Engine
 {
     Application::Application()
@@ -66,7 +68,7 @@ namespace Engine
             return false;
         }
 
-        // Dispatch input and window events to the active layer before per-frame work executes.
+                // Dispatch input and window events to the active layer before per-frame work executes.
         m_Window.SetEventCallback([this](const Event& l_Event)
             {
                 OnEvent(l_Event);
@@ -172,6 +174,9 @@ namespace Engine
 
         while (!m_Window.ShouldWindowClose())
         {
+            // Reset per-frame input caches before processing new events.
+            Input::BeginFrame();
+
             // Process OS-level events first so input informs the next Update call.
             glfwPollEvents();
 
@@ -187,6 +192,9 @@ namespace Engine
 
             // Present the rendered frame to the screen.
             glfwSwapBuffers(m_Window.GetNativeWindow());
+
+            // Allow the input system to finalize any per-frame bookkeeping.
+            Input::EndFrame();
         }
 
         // Ensure the gameplay layer shuts down cleanly after the main loop ends.
@@ -195,6 +203,9 @@ namespace Engine
 
     void Application::OnEvent(const Event& event)
     {
+        // Cache input-centric events before forwarding to gameplay so query APIs stay coherent.
+        Input::OnEvent(event);
+
         // Safely forward the event to the gameplay layer when it exists and is ready.
         if (m_IsGameLayerInitialized && m_GameLayer != nullptr)
         {

@@ -3,8 +3,11 @@
 #include <iostream>
 #include <vector>
 
-#include "Engine/Renderer/Renderer.h"
 #include "Engine/Events/Events.h"
+#include "Engine/Input/Input.h"
+#include "Engine/Renderer/Renderer.h"
+
+#include <GLFW/glfw3.h>
 
 bool GameLayer::Initialize()
 {
@@ -15,6 +18,10 @@ bool GameLayer::Initialize()
     }
 
     m_IsInitialized = true;
+
+    // Bind example gameplay actions to specific inputs so Update() can consume them.
+    Engine::Input::RegisterActionMapping("MoveForward", { GLFW_KEY_W });
+    Engine::Input::RegisterActionMapping("Sprint", { GLFW_KEY_LEFT_SHIFT, GLFW_KEY_W });
 
     return m_IsInitialized;
 }
@@ -27,7 +34,30 @@ void GameLayer::Update()
         return;
     }
 
-    // TODO: Insert per-frame game logic here.
+    // Demonstrate the new input API by polling both edge and hold state.
+    const bool l_WasEscapePressed = Engine::Input::WasKeyPressedThisFrame(GLFW_KEY_ESCAPE);
+    if (l_WasEscapePressed)
+    {
+        std::cout << "Escape was pressed this frame" << std::endl;
+    }
+
+    const bool l_IsSprinting = Engine::Input::IsActionDown("Sprint");
+    if (l_IsSprinting)
+    {
+        std::cout << "Sprint combo is held" << std::endl;
+    }
+
+    const bool l_MoveTriggered = Engine::Input::WasActionPressedThisFrame("MoveForward");
+    if (l_MoveTriggered)
+    {
+        std::cout << "MoveForward triggered this frame" << std::endl;
+    }
+
+    const std::pair<float, float> l_MouseDelta = Engine::Input::GetMouseDelta();
+    if (l_MouseDelta.first != 0.0f || l_MouseDelta.second != 0.0f)
+    {
+        std::cout << "Mouse moved by (" << l_MouseDelta.first << ", " << l_MouseDelta.second << ") this frame" << std::endl;
+    }
 }
 
 void GameLayer::Render()
