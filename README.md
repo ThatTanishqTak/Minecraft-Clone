@@ -89,6 +89,8 @@ Minecraft-Clone/
 
 * Simple layer-based architecture
 * Game runtime built on engine loop
+* `GameLayer` lifecycle hooks (Initialize, Update, Render, Shutdown) guarded to avoid re-initialization or premature calls
+* Placeholder render call uses the engine renderer to draw a flat quad until chunk meshes are ready
 * Assets auto-copied to binary directory
 * Clean separation from engine code
 
@@ -99,14 +101,17 @@ Current:
 * Basic window creation
 * Context handling
 * Swap buffers + event polling
+* Minimal renderer that compiles a shader program, uploads a quad made of two triangles, and draws it as placeholder geometry
+* Depth testing enabled and framebuffer viewport configured from the window size
 
 Upcoming:
 
-* Vertex buffers and shader system
+* Vertex buffers and shader system (expanded materials, uniforms)
 * Chunk meshing
 * Texture atlas
 * Player camera
 * Block registry and world generation
+* Renderer cleanup hooks for future post-processing
 
 ---
 
