@@ -25,10 +25,16 @@ namespace Engine
         ENGINE_TRACE("Application shutdown complete");
     }
 
-    void Application::RegisterGameLayer(Layer* gameLayer)
+    void Application::RegisterGameLayer(std::unique_ptr<Layer> gameLayer)
     {
-        // The game is responsible for the lifetime of the layer; the engine only stores a pointer.
-        m_GameLayer = gameLayer;
+        // The engine owns the gameplay layer to ensure shutdown is coordinated in one place.
+        m_GameLayer = std::move(gameLayer);
+    }
+
+    void Application::RegisterGameLayerFactory(std::function<std::unique_ptr<Layer>()> gameLayerFactory)
+    {
+        // Store the factory so the engine can create the gameplay layer when ready.
+        m_GameLayerFactory = std::move(gameLayerFactory);
     }
 
     bool Application::Initialize()
@@ -82,6 +88,9 @@ namespace Engine
 
     void Application::Shutdown()
     {
+        // Ensure the gameplay layer is shut down before the renderer and window are destroyed.
+        ShutdownGameLayer();
+
         // Release GPU resources before tearing down the context.
         Renderer::Shutdown();
 
@@ -95,6 +104,51 @@ namespace Engine
         m_Window.Shutdown();
     }
 
+    bool Application::InitializeGameLayer()
+    {
+        // Create the gameplay layer if a factory is available and nothing has been registered yet.
+        if (m_GameLayer == nullptr && m_GameLayerFactory != nullptr)
+        {
+            m_GameLayer = m_GameLayerFactory();
+        }
+
+        if (m_GameLayer == nullptr)
+        {
+            // Running without a game layer offers no meaningful work, so we exit early.
+            ENGINE_ERROR("No game layer registered");
+
+            return false;
+        }
+
+        // Let the gameplay layer prepare its resources and report failures clearly.
+        if (!m_GameLayer->Initialize())
+        {
+            ENGINE_ERROR("Game layer initialization failed");
+
+            // Release the layer so repeated Run calls can retry with a fresh instance if desired.
+            m_GameLayer.reset();
+
+            return false;
+        }
+
+        m_IsGameLayerInitialized = true;
+
+        return true;
+    }
+
+    void Application::ShutdownGameLayer()
+    {
+        if (!m_IsGameLayerInitialized || m_GameLayer == nullptr)
+        {
+            // Nothing to do if initialization was never completed.
+            return;
+        }
+
+        m_GameLayer->Shutdown();
+        m_GameLayer.reset();
+        m_IsGameLayerInitialized = false;
+    }
+
     void Application::Run()
     {
         if (!m_IsInitialized)
@@ -105,11 +159,8 @@ namespace Engine
             return;
         }
 
-        if (m_GameLayer == nullptr)
+        if (!InitializeGameLayer())
         {
-            // Running without a game layer offers no meaningful work, so we exit early.
-            ENGINE_ERROR("No game layer registered");
-
             return;
         }
 
@@ -129,5 +180,8 @@ namespace Engine
             glfwSwapBuffers(m_Window.GetNativeWindow());
             glfwPollEvents();
         }
+
+        // Ensure the gameplay layer shuts down cleanly after the main loop ends.
+        ShutdownGameLayer();
     }
 }

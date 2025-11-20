@@ -5,6 +5,9 @@
 #include "Engine/Window/Window.h"
 #include "Engine/Layer/Layer.h"
 
+#include <functional>
+#include <memory>
+
 namespace Engine
 {
     class Application
@@ -14,7 +17,10 @@ namespace Engine
         ~Application();
 
         // Register a gameplay layer so the engine can drive its lifecycle.
-        void RegisterGameLayer(Layer* gameLayer);
+        void RegisterGameLayer(std::unique_ptr<Layer> gameLayer);
+
+        // Allow callers to provide a factory for creating gameplay layers on demand.
+        void RegisterGameLayerFactory(std::function<std::unique_ptr<Layer>()> gameLayerFactory);
 
         void Run();
 
@@ -22,11 +28,17 @@ namespace Engine
         bool Initialize();
         void Shutdown();
 
+        // Handle the lifecycle of the registered game layer.
+        bool InitializeGameLayer();
+        void ShutdownGameLayer();
+
     private:
         Window m_Window;
-        Layer* m_GameLayer = nullptr;
+        std::unique_ptr<Layer> m_GameLayer;
+        std::function<std::unique_ptr<Layer>()> m_GameLayerFactory;
 
         bool m_IsInitialized = false;
         bool m_IsGlfwInitialized = false;
+        bool m_IsGameLayerInitialized = false;
     };
 }

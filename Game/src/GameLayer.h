@@ -9,7 +9,7 @@ class GameLayer : public Engine::Layer
 {
 public:
     GameLayer() = default;
-    ~GameLayer();
+    ~GameLayer() override = default;
 
     // Prepare gameplay systems and resources.
     bool Initialize() override;

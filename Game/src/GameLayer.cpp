@@ -5,12 +5,6 @@
 
 #include "Engine/Renderer/Renderer.h"
 
-GameLayer::~GameLayer()
-{
-    // Ensure resources are released when the layer leaves scope.
-    Shutdown();
-}
-
 bool GameLayer::Initialize()
 {
     if (m_IsInitialized)
