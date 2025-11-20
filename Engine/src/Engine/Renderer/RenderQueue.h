@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <vector>
 
@@ -19,6 +20,8 @@ namespace Engine
         GLsizei ElementCount = 0;
         bool UseIndices = false;
         std::shared_ptr<IndexBuffer> IndexBufferObject;
+        GLuint TextureId = 0;
+        std::function<void(const Shader&)> UniformCallback;
     };
 
     // Queues draw commands for batched submission.

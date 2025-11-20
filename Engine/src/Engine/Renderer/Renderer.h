@@ -19,8 +19,9 @@ namespace Engine
 
         static void BeginFrame();
         static void EndFrame();
-
         static void DrawPlaceholderGeometry();
+        
+        static RenderQueue* GetRenderQueue() { return s_RenderQueue.get(); }
 
     private:
         static GLuint s_VertexArrayObject;

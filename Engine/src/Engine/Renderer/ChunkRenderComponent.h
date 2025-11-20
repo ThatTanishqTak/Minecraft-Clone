@@ -19,6 +19,7 @@ namespace Engine
         ~ChunkRenderComponent();
 
         void SetShader(const std::shared_ptr<Shader>& shaderProgram);
+        void SetTexture(GLuint textureId);
         void UpdateMesh(const ChunkMesh& meshData);
         void Enqueue(RenderQueue& renderQueue) const;
 
@@ -30,6 +31,7 @@ namespace Engine
         std::shared_ptr<VertexBuffer> m_VertexBuffer;
         std::shared_ptr<IndexBuffer> m_IndexBuffer;
         std::shared_ptr<Shader> m_ShaderProgram;
+        GLuint m_TextureId = 0;
         GLsizei m_ElementCount = 0;
     };
 }

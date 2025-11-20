@@ -18,6 +18,12 @@ namespace Engine
         m_ShaderProgram = shaderProgram;
     }
 
+    void ChunkRenderComponent::SetTexture(GLuint textureId)
+    {
+        // Store the atlas texture handle so draw calls can bind it.
+        m_TextureId = textureId;
+    }
+
     void ChunkRenderComponent::UpdateMesh(const ChunkMesh& meshData)
     {
         if (m_VertexArrayObject == 0)
@@ -37,6 +43,15 @@ namespace Engine
 
         glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(ChunkVertex), reinterpret_cast<void*>(sizeof(float) * 6));
         glEnableVertexAttribArray(2);
+
+        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(ChunkVertex), reinterpret_cast<void*>(sizeof(float) * 8));
+        glEnableVertexAttribArray(3);
+
+        glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, sizeof(ChunkVertex), reinterpret_cast<void*>(sizeof(float) * 10));
+        glEnableVertexAttribArray(4);
+
+        glVertexAttribPointer(5, 1, GL_FLOAT, GL_FALSE, sizeof(ChunkVertex), reinterpret_cast<void*>(sizeof(float) * 12));
+        glEnableVertexAttribArray(5);
 
         // Refresh the index buffer so draw calls use the right indices.
         m_IndexBuffer = std::make_shared<IndexBuffer>(meshData.Indices.data(), meshData.Indices.size(), GL_UNSIGNED_INT, GL_DYNAMIC_DRAW);
@@ -59,6 +74,15 @@ namespace Engine
         l_Command.ElementCount = m_ElementCount;
         l_Command.UseIndices = true;
         l_Command.IndexBufferObject = m_IndexBuffer;
+        l_Command.TextureId = m_TextureId;
+        l_Command.UniformCallback = [](const Shader& shader)
+            {
+                GLint l_Location = glGetUniformLocation(shader.GetProgramId(), "u_AtlasTexture");
+                if (l_Location >= 0)
+                {
+                    glUniform1i(l_Location, 0);
+                }
+            };
 
         renderQueue.Submit(l_Command);
     }

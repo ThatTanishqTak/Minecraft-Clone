@@ -1,6 +1,7 @@
 #include "Engine/World/ChunkMesher.h"
 
 #include <algorithm>
+#include <unordered_map>
 
 #include <glm/geometric.hpp>
 
@@ -20,14 +21,40 @@ namespace Engine
             bool HasFace = false;
             bool IsPositive = true;
             BlockType Type = BlockType::Air;
+            BlockFace Face = BlockFace::PositiveX;
         };
+
+        BlockFace GetFaceFromAxis(int axis, bool isPositive)
+        {
+            switch (axis)
+            {
+            case 0:
+                return isPositive ? BlockFace::PositiveX : BlockFace::NegativeX;
+            case 1:
+                return isPositive ? BlockFace::PositiveY : BlockFace::NegativeY;
+            default:
+                return isPositive ? BlockFace::PositiveZ : BlockFace::NegativeZ;
+            }
+        }
+
+        const BlockRenderInfo* GetRenderInfo(const std::unordered_map<BlockType, BlockRenderInfo>& blockTable, BlockType type)
+        {
+            auto l_Iterator = blockTable.find(type);
+            if (l_Iterator == blockTable.end())
+            {
+                return nullptr;
+            }
+
+            return &l_Iterator->second;
+        }
 
         bool IsInsideChunk(int x, int y, int z)
         {
             return x >= 0 && x < Chunk::s_SizeX && y >= 0 && y < Chunk::s_SizeY && z >= 0 && z < Chunk::s_SizeZ;
         }
 
-        MaskCell EvaluateFace(const Chunk& chunk, const std::array<int, 3>& position, const std::array<int, 3>& step)
+        MaskCell EvaluateFace(const Chunk& chunk, const std::array<int, 3>& position, const std::array<int, 3>& step, 
+            const std::unordered_map<BlockType, BlockRenderInfo>& blockTable)
         {
             MaskCell l_Cell = {};
             Block l_FirstBlock = {};
@@ -50,8 +77,11 @@ namespace Engine
                 l_SecondBlock = chunk.GetBlock(l_SecondPosition[0], l_SecondPosition[1], l_SecondPosition[2]);
             }
 
-            bool l_FirstOpaque = l_FirstBlock.IsOpaque();
-            bool l_SecondOpaque = l_SecondBlock.IsOpaque();
+            const BlockRenderInfo* l_FirstInfo = GetRenderInfo(blockTable, l_FirstBlock.Type);
+            const BlockRenderInfo* l_SecondInfo = GetRenderInfo(blockTable, l_SecondBlock.Type);
+
+            bool l_FirstOpaque = l_FirstInfo != nullptr && l_FirstInfo->IsOpaque;
+            bool l_SecondOpaque = l_SecondInfo != nullptr && l_SecondInfo->IsOpaque;
 
             if (l_FirstOpaque == l_SecondOpaque)
             {
@@ -61,34 +91,31 @@ namespace Engine
             l_Cell.HasFace = true;
             l_Cell.IsPositive = l_FirstOpaque && !l_SecondOpaque;
             l_Cell.Type = l_FirstOpaque ? l_FirstBlock.Type : l_SecondBlock.Type;
+            int l_Axis = step[0] != 0 ? 0 : (step[1] != 0 ? 1 : 2);
+            l_Cell.Face = GetFaceFromAxis(l_Axis, l_Cell.IsPositive);
 
             return l_Cell;
         }
 
-        void AppendQuad(ChunkMesh& mesh, const glm::vec3& origin, const glm::vec3& deltaU, const glm::vec3& deltaV, const glm::vec3& normal, bool isPositive)
+        void AppendQuad(ChunkMesh& mesh, const glm::vec3& origin, const glm::vec3& deltaU, const glm::vec3& deltaV, const glm::vec3& normal, 
+            bool isPositive, const glm::vec2& atlasMin, const glm::vec2& atlasMax, float materialFlags)
         {
             std::uint32_t l_BaseIndex = static_cast<std::uint32_t>(mesh.Vertices.size());
 
-            // Build the quad vertices in an order that keeps the normal consistent.
+            // Build the quad vertices in an order that keeps the normal consistent and carries atlas data per vertex.
             if (isPositive)
             {
-                float l_DeltaULength = glm::length(deltaU);
-                float l_DeltaVLength = glm::length(deltaV);
-
-                mesh.Vertices.push_back({ origin, normal, glm::vec2(0.0f, 0.0f) });
-                mesh.Vertices.push_back({ origin + deltaU, normal, glm::vec2(l_DeltaULength, 0.0f) });
-                mesh.Vertices.push_back({ origin + deltaU + deltaV, normal, glm::vec2(l_DeltaULength, l_DeltaVLength) });
-                mesh.Vertices.push_back({ origin + deltaV, normal, glm::vec2(0.0f, l_DeltaVLength) });
+                mesh.Vertices.push_back({ origin, normal, glm::vec2(0.0f, 0.0f), atlasMin, atlasMax, materialFlags });
+                mesh.Vertices.push_back({ origin + deltaU, normal, glm::vec2(1.0f, 0.0f), atlasMin, atlasMax, materialFlags });
+                mesh.Vertices.push_back({ origin + deltaU + deltaV, normal, glm::vec2(1.0f, 1.0f), atlasMin, atlasMax, materialFlags });
+                mesh.Vertices.push_back({ origin + deltaV, normal, glm::vec2(0.0f, 1.0f), atlasMin, atlasMax, materialFlags });
             }
             else
             {
-                float l_DeltaULength = glm::length(deltaU);
-                float l_DeltaVLength = glm::length(deltaV);
-
-                mesh.Vertices.push_back({ origin, normal, glm::vec2(0.0f, 0.0f) });
-                mesh.Vertices.push_back({ origin + deltaV, normal, glm::vec2(0.0f, l_DeltaVLength) });
-                mesh.Vertices.push_back({ origin + deltaU + deltaV, normal, glm::vec2(l_DeltaULength, l_DeltaVLength) });
-                mesh.Vertices.push_back({ origin + deltaU, normal, glm::vec2(l_DeltaULength, 0.0f) });
+                mesh.Vertices.push_back({ origin, normal, glm::vec2(0.0f, 0.0f), atlasMin, atlasMax, materialFlags });
+                mesh.Vertices.push_back({ origin + deltaV, normal, glm::vec2(0.0f, 1.0f), atlasMin, atlasMax, materialFlags });
+                mesh.Vertices.push_back({ origin + deltaU + deltaV, normal, glm::vec2(1.0f, 1.0f), atlasMin, atlasMax, materialFlags });
+                mesh.Vertices.push_back({ origin + deltaU, normal, glm::vec2(1.0f, 0.0f), atlasMin, atlasMax, materialFlags });
             }
 
             mesh.Indices.push_back(l_BaseIndex + 0);
@@ -131,7 +158,7 @@ namespace Engine
         return static_cast<std::size_t>(x + y * s_SizeX + z * s_SizeX * s_SizeY);
     }
 
-    ChunkMesh ChunkMesher::GenerateMesh(const Chunk& chunk)
+    ChunkMesh ChunkMesher::GenerateMesh(const Chunk& chunk, const std::unordered_map<BlockType, BlockRenderInfo>& blockTable)
     {
         ChunkMesh l_Mesh = {};
         std::array<int, 3> l_Dimensions = { Chunk::s_SizeX, Chunk::s_SizeY, Chunk::s_SizeZ };
@@ -156,7 +183,7 @@ namespace Engine
                     for (l_Position[u] = 0; l_Position[u] < l_Dimensions[u]; ++l_Position[u])
                     {
                         std::size_t l_MaskIndex = static_cast<std::size_t>(l_Position[u] + l_Position[v] * l_Dimensions[u]);
-                        l_Mask[l_MaskIndex] = EvaluateFace(chunk, l_Position, l_Step);
+                        l_Mask[l_MaskIndex] = EvaluateFace(chunk, l_Position, l_Step, blockTable);
                     }
                 }
 
@@ -225,7 +252,17 @@ namespace Engine
                         glm::vec3 l_DeltaV = s_Axes[v] * static_cast<float>(l_Height);
                         glm::vec3 l_Normal = s_Axes[l_Axis] * (l_Cell.IsPositive ? 1.0f : -1.0f);
 
-                        AppendQuad(l_Mesh, l_Origin, l_DeltaU, l_DeltaV, l_Normal, l_Cell.IsPositive);
+                        auto l_InfoIterator = blockTable.find(l_Cell.Type);
+                        if (l_InfoIterator == blockTable.end())
+                        {
+                            j += l_Width;
+                            continue;
+                        }
+
+                        const BlockRenderInfo& l_RenderInfo = l_InfoIterator->second;
+                        int l_FaceIndex = static_cast<int>(l_Cell.Face);
+                        AppendQuad(l_Mesh, l_Origin, l_DeltaU, l_DeltaV, l_Normal, l_Cell.IsPositive, l_RenderInfo.AtlasMins[l_FaceIndex], 
+                            l_RenderInfo.AtlasMaxs[l_FaceIndex], l_RenderInfo.MaterialFlags);
 
                         for (int l_CoveredY = 0; l_CoveredY < l_Height; ++l_CoveredY)
                         {
