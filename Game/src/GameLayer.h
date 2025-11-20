@@ -16,6 +16,9 @@ public:
     // Advance simulation for the current frame.
     void Update() override;
 
+    // React to incoming engine events (keyboard, mouse, window, etc.).
+    void OnEvent(const Engine::Event& event) override;
+
     // Draw the current frame.
     void Render() override;
 

@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "Engine/Renderer/Renderer.h"
+#include "Engine/Events/Events.h"
 
 bool GameLayer::Initialize()
 {
@@ -36,6 +37,12 @@ void GameLayer::Render()
         // Prevent rendering before the layer is ready.
         return;
     }
+}
+
+void GameLayer::OnEvent(const Engine::Event& event)
+{
+    // Future event handling can react to inputs; currently this layer logs handled events when needed.
+    (void)event;
 }
 
 void GameLayer::Shutdown()

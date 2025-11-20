@@ -2,6 +2,7 @@
 
 #include "Engine/Core/Core.h"
 #include "Engine/Core/Log.h"
+#include "Engine/Events/Events.h"
 #include "Engine/Renderer/Renderer.h"
 #include "Engine/Window/Window.h"
 #include "Engine/Layer/Layer.h"
@@ -32,6 +33,9 @@ namespace Engine
         // Handle the lifecycle of the registered game layer.
         bool InitializeGameLayer();
         void ShutdownGameLayer();
+
+        // Forward events from the window into the active game layer when available.
+        void OnEvent(const Event& event);
 
     private:
         Window m_Window;

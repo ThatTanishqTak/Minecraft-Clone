@@ -66,6 +66,12 @@ namespace Engine
             return false;
         }
 
+        // Dispatch input and window events to the active layer before per-frame work executes.
+        m_Window.SetEventCallback([this](const Event& l_Event)
+            {
+                OnEvent(l_Event);
+            });
+
         // Configure the viewport to the current framebuffer size for accurate presentation.
         int l_FramebufferWidth = 0;
         int l_FramebufferHeight = 0;
@@ -166,6 +172,9 @@ namespace Engine
 
         while (!m_Window.ShouldWindowClose())
         {
+            // Process OS-level events first so input informs the next Update call.
+            glfwPollEvents();
+
             Renderer::BeginFrame();
 
             // Update the game state before rendering to ensure visuals reflect the latest logic.
@@ -178,10 +187,18 @@ namespace Engine
 
             // Present the rendered frame to the screen.
             glfwSwapBuffers(m_Window.GetNativeWindow());
-            glfwPollEvents();
         }
 
         // Ensure the gameplay layer shuts down cleanly after the main loop ends.
         ShutdownGameLayer();
+    }
+
+    void Application::OnEvent(const Event& event)
+    {
+        // Safely forward the event to the gameplay layer when it exists and is ready.
+        if (m_IsGameLayerInitialized && m_GameLayer != nullptr)
+        {
+            m_GameLayer->OnEvent(event);
+        }
     }
 }
