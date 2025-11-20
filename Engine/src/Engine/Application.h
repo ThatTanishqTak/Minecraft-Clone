@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Engine/Core/Core.h"
 #include "Engine/Core/Log.h"
 #include "Engine/Renderer/Renderer.h"
 #include "Engine/Window/Window.h"
@@ -10,7 +11,7 @@
 
 namespace Engine
 {
-    class Application
+    class ENGINE_API Application
     {
     public:
         Application();

@@ -3,6 +3,9 @@
 # Shared library for the engine
 add_library(Engine SHARED)
 
+# Make sure the target advertises C++20 so Windows/MSVC consumers match the engine ABI.
+target_compile_features(Engine PUBLIC cxx_std_20)
+
 # ------------------------------------------------------------------
 # Engine sources
 # ------------------------------------------------------------------
@@ -111,7 +114,7 @@ target_link_libraries(Engine
 )
 
 # Proper DLL export
-target_compile_definitions(Engine PRIVATE ENGINE_EXPORTS)
+target_compile_definitions(Engine PRIVATE ENGINE_BUILD_DLL)
 
 set_target_properties(Engine PROPERTIES
     DEBUG_POSTFIX "d"                  # Engined.dll in Debug builds

@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "Engine/Core/Core.h"
 #include "Engine/Renderer/ChunkRenderComponent.h"
 #include "Engine/Renderer/RenderQueue.h"
 #include "Engine/Renderer/Shader.h"
@@ -13,7 +14,7 @@
 namespace Engine
 {
     // Service responsible for world-specific rendering concerns (atlases, shaders, chunk meshes).
-    class WorldRenderingService
+    class ENGINE_API WorldRenderingService
     {
     public:
         WorldRenderingService();

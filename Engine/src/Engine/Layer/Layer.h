@@ -1,9 +1,11 @@
 #pragma once
 
+#include "Engine/Core/Core.h"
+
 namespace Engine
 {
     // Interface that allows the application to communicate with a gameplay-specific layer.
-    class Layer
+    class ENGINE_API Layer
     {
     public:
         virtual ~Layer() = default;

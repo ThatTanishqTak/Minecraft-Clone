@@ -6,13 +6,15 @@
 
 #include <glad/glad.h>
 
+#include "Engine/Core/Core.h"
+
 namespace Engine
 {
     class Shader;
     class IndexBuffer;
 
     // Description of a single draw call.
-    struct RenderCommand
+    struct ENGINE_API RenderCommand
     {
         GLuint VertexArrayObject = 0;
         std::shared_ptr<Shader> ShaderProgram;
@@ -25,7 +27,7 @@ namespace Engine
     };
 
     // Queues draw commands for batched submission.
-    class RenderQueue
+    class ENGINE_API RenderQueue
     {
     public:
         void Submit(const RenderCommand& command);

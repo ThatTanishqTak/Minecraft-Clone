@@ -8,6 +8,8 @@
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
+#include "Engine/Core/Core.h"
+
 namespace Engine
 {
     // Use a lightweight block representation so the mesher stays simple.
@@ -43,7 +45,7 @@ namespace Engine
     };
 
     // Keep a fixed-size chunk that stores block data in a flat array.
-    class Chunk
+    class ENGINE_API Chunk
     {
     public:
         static constexpr int s_SizeX = 16;
@@ -80,7 +82,7 @@ namespace Engine
     };
 
     // Run a greedy mesher that collapses coplanar faces inside a chunk.
-    class ChunkMesher
+    class ENGINE_API ChunkMesher
     {
     public:
         static ChunkMesh GenerateMesh(const Chunk& chunk, const std::unordered_map<BlockType, BlockRenderInfo>& blockTable);
