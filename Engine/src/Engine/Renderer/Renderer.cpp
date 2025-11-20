@@ -10,7 +10,6 @@ namespace Engine
     std::shared_ptr<VertexBuffer> Renderer::s_PlaceholderVertexBuffer = nullptr;
     std::shared_ptr<IndexBuffer> Renderer::s_PlaceholderIndexBuffer = nullptr;
     std::shared_ptr<Shader> Renderer::s_PlaceholderShader = nullptr;
-    std::unique_ptr<RenderQueue> Renderer::s_RenderQueue = nullptr;
 
     bool Renderer::Initialize()
     {
@@ -76,8 +75,6 @@ namespace Engine
 
         glBindVertexArray(0);
 
-        s_RenderQueue = std::make_unique<RenderQueue>();
-
         return true;
     }
 
@@ -87,7 +84,6 @@ namespace Engine
         s_PlaceholderShader.reset();
         s_PlaceholderVertexBuffer.reset();
         s_PlaceholderIndexBuffer.reset();
-        s_RenderQueue.reset();
 
         if (s_VertexArrayObject != 0)
         {
@@ -111,35 +107,14 @@ namespace Engine
 
     void Renderer::EndFrame()
     {
-        // Flush all enqueued draw calls before presenting the frame.
-        if (s_RenderQueue != nullptr)
-        {
-            s_RenderQueue->Flush();
-        }
-    }
 
-    RenderQueue* Renderer::GetRenderQueue()
-    {
-        // Provide the render queue to consumers while ensuring the static
-        // instance is exported from the Engine DLL boundary.
-        return s_RenderQueue.get();
     }
 
     void Renderer::DrawPlaceholderGeometry()
     {
-        if (s_RenderQueue == nullptr || s_PlaceholderShader == nullptr || s_PlaceholderIndexBuffer == nullptr)
+        if (s_PlaceholderShader == nullptr || s_PlaceholderIndexBuffer == nullptr)
         {
             return;
         }
-
-        RenderCommand l_Command = {};
-        l_Command.VertexArrayObject = s_VertexArrayObject;
-        l_Command.ShaderProgram = s_PlaceholderShader;
-        l_Command.PrimitiveType = GL_TRIANGLES;
-        l_Command.ElementCount = s_PlaceholderIndexBuffer->GetCount();
-        l_Command.UseIndices = true;
-        l_Command.IndexBufferObject = s_PlaceholderIndexBuffer;
-
-        s_RenderQueue->Submit(l_Command);
     }
 }

@@ -2,7 +2,6 @@
 
 #include "Engine/Application.h"
 #include "Engine/Layer/Layer.h"
-#include "Engine/Renderer/WorldRenderer.h"
 
 // GameLayer drives gameplay logic and rendering owned by the Game target.
 class GameLayer : public Engine::Layer
@@ -25,6 +24,4 @@ public:
 
 private:
     bool m_IsInitialized = false;
-    Engine::Chunk m_Chunk;
-    std::unique_ptr<Engine::WorldRenderer> m_WorldRenderer;
 };
