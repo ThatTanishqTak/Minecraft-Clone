@@ -5,9 +5,6 @@
 #include <GLFW/glfw3.h>
 #include <glad/glad.h>
 
-#include "Engine/Renderer/Renderer.h"
-#include "Engine/Core/Log.h"
-
 namespace Engine
 {
     Application::Application()

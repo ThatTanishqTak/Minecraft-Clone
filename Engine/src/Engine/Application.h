@@ -1,8 +1,9 @@
 #pragma once
 
+#include "Engine/Core/Log.h"
+#include "Engine/Renderer/Renderer.h"
 #include "Engine/Window/Window.h"
 #include "Engine/Layer/Layer.h"
-#include "Engine/Renderer/Renderer.h"
 
 namespace Engine
 {
