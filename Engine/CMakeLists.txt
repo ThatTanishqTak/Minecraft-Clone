@@ -59,12 +59,55 @@ set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/glfw)
 
 # ------------------------------------------------------------------
-# Link Engine with GLAD + GLFW
+# Header-only libraries (glm, stb, EnTT)
+#   Provide lightweight INTERFACE targets so consumers can just link them.
+# ------------------------------------------------------------------
+add_library(glm INTERFACE)
+target_include_directories(glm INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vendor/glm)
+
+add_library(stb INTERFACE)
+target_include_directories(stb INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/vendor/stb)
+
+add_library(entt INTERFACE)
+target_include_directories(entt INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/entt/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/vendor/entt/single_include
+)
+
+# ------------------------------------------------------------------
+# spdlog (as header-only)
+#   Keep it lightweight by disabling installs/tests and enabling header-only mode.
+# ------------------------------------------------------------------
+set(SPDLOG_HEADER_ONLY ON CACHE BOOL "" FORCE)
+set(SPDLOG_INSTALL OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(SPDLOG_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/spdlog)
+
+# ------------------------------------------------------------------
+# yaml-cpp (static library)
+#   Used for serialization and configuration handling.
+# ------------------------------------------------------------------
+set(YAML_BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(YAML_CPP_INSTALL OFF CACHE BOOL "" FORCE)
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/vendor/yaml-cpp)
+
+# ------------------------------------------------------------------
+# Link Engine with GLAD + GLFW + vendor stack
 # ------------------------------------------------------------------
 target_link_libraries(Engine
     PUBLIC
         glad
         glfw
+        glm
+        stb
+        entt
+        spdlog::spdlog_header_only
+        yaml-cpp
 )
 
 # Proper DLL export
