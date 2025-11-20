@@ -3,6 +3,9 @@
 #include <iostream>
 
 #include <GLFW/glfw3.h>
+#include <glad/glad.h>
+
+#include "Engine/Renderer/Renderer.h"
 
 namespace Engine
 {
@@ -57,11 +60,31 @@ namespace Engine
             return false;
         }
 
+        // Configure the viewport to the current framebuffer size for accurate presentation.
+        int l_FramebufferWidth = 0;
+        int l_FramebufferHeight = 0;
+        glfwGetFramebufferSize(m_Window.GetNativeWindow(), &l_FramebufferWidth, &l_FramebufferHeight);
+        glViewport(0, 0, l_FramebufferWidth, l_FramebufferHeight);
+
+        // Enable depth testing to keep future 3D content ordering correct.
+        glEnable(GL_DEPTH_TEST);
+
+        // Initialize the renderer after OpenGL context creation.
+        if (!Renderer::Initialize())
+        {
+            std::cout << "Failed to initialize renderer" << std::endl;
+
+            return false;
+        }
+
         return true;
     }
 
     void Application::Shutdown()
     {
+        // Release GPU resources before tearing down the context.
+        Renderer::Shutdown();
+
         // Terminate GLFW if it was ever initialized to keep the shutdown path explicit.
         if (m_IsGlfwInitialized)
         {
@@ -92,11 +115,15 @@ namespace Engine
 
         while (!m_Window.ShouldWindowClose())
         {
+            Renderer::BeginFrame();
+
             // Update the game state before rendering to ensure visuals reflect the latest logic.
             m_GameLayer->Update();
 
             // Render the current frame from the game layer.
             m_GameLayer->Render();
+
+            Renderer::EndFrame();
 
             // Present the rendered frame to the screen.
             glfwSwapBuffers(m_Window.GetNativeWindow());

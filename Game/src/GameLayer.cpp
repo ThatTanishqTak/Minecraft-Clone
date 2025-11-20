@@ -41,7 +41,9 @@ void GameLayer::Render()
         return;
     }
 
-    // TODO: Insert rendering commands (e.g., draw world, UI).
+    // TODO: Replace placeholder geometry with chunk mesh buffers once available.
+    // TODO: Bind a texture atlas once asset loading is implemented.
+    Engine::Renderer::DrawPlaceholderGeometry();
 }
 
 void GameLayer::Shutdown()
