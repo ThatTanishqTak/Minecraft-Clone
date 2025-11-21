@@ -8,6 +8,8 @@ namespace Engine
 {
     Camera::Camera()
     {
+        Engine::Utilities::Log::Initialize();
+
         // Initialize matrices so rendering starts with predictable defaults.
         RecalculateView();
         RecalculateProjection();
