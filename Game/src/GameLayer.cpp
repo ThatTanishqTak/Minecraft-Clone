@@ -90,10 +90,13 @@ bool GameLayer::Initialize()
     GenerateTestChunk();
     RefreshChunkMesh();
 
-    // Bind example gameplay actions to specific inputs so Update() can consume them.
+    // Bind gameplay actions to common movement keys so Update() can translate intent into motion.
     Engine::Input::RegisterActionMapping("MoveForward", { GLFW_KEY_W });
-    Engine::Input::RegisterActionMapping("Sprint", { GLFW_KEY_LEFT_SHIFT, GLFW_KEY_W });
-    GAME_TRACE("Input mappings registered for MoveForward and Sprint");
+    Engine::Input::RegisterActionMapping("MoveBackward", { GLFW_KEY_S });
+    Engine::Input::RegisterActionMapping("MoveLeft", { GLFW_KEY_A });
+    Engine::Input::RegisterActionMapping("MoveRight", { GLFW_KEY_D });
+    Engine::Input::RegisterActionMapping("Sprint", { GLFW_KEY_LEFT_SHIFT });
+    GAME_TRACE("Input mappings registered for full movement set and Sprint");
 
     m_LastFrameTimeSeconds = glfwGetTime();
 
@@ -133,17 +136,19 @@ void GameLayer::Update()
         //GAME_INFO("Escape was pressed this frame");
     }
 
+    // Check movement and sprint intent via the action system so behavior can evolve without touching keycodes.
     const bool l_IsSprinting = Engine::Input::IsActionDown("Sprint");
-    if (l_IsSprinting)
+    const bool l_MoveForwardTriggered = Engine::Input::WasActionPressedThisFrame("MoveForward");
+    const bool l_MoveBackwardTriggered = Engine::Input::WasActionPressedThisFrame("MoveBackward");
+    const bool l_MoveLeftTriggered = Engine::Input::WasActionPressedThisFrame("MoveLeft");
+    const bool l_MoveRightTriggered = Engine::Input::WasActionPressedThisFrame("MoveRight");
+
+    // Future telemetry could use these triggers for analytics or tutorial prompts.
+    if (l_MoveForwardTriggered || l_MoveBackwardTriggered || l_MoveLeftTriggered || l_MoveRightTriggered)
     {
-        //GAME_INFO("Sprint combo is held");
+        //GAME_INFO("Movement action triggered this frame");
     }
 
-    const bool l_MoveTriggered = Engine::Input::WasActionPressedThisFrame("MoveForward");
-    if (l_MoveTriggered)
-    {
-        //GAME_INFO("MoveForward triggered this frame");
-    }
 
     // Update camera orientation from mouse movement.
     const std::pair<float, float> l_MouseDelta = Engine::Input::GetMouseDelta();
@@ -166,25 +171,26 @@ void GameLayer::Update()
     const glm::vec3 l_Up = glm::normalize(glm::cross(l_Right, l_Forward));
 
     float l_CurrentSpeed = m_CameraMoveSpeed;
-    if (Engine::Input::IsKeyDown(GLFW_KEY_LEFT_SHIFT))
+    if (l_IsSprinting)
     {
         l_CurrentSpeed *= 2.0f;
     }
 
+    // Resolve camera displacement from action state so all four directions are supported consistently.
     const float l_Velocity = l_CurrentSpeed * m_DeltaTimeSeconds;
-    if (Engine::Input::IsKeyDown(GLFW_KEY_W))
+    if (Engine::Input::IsActionDown("MoveForward"))
     {
         m_CameraPosition += l_Forward * l_Velocity;
     }
-    if (Engine::Input::IsKeyDown(GLFW_KEY_S))
+    if (Engine::Input::IsActionDown("MoveBackward"))
     {
         m_CameraPosition -= l_Forward * l_Velocity;
     }
-    if (Engine::Input::IsKeyDown(GLFW_KEY_A))
+    if (Engine::Input::IsActionDown("MoveLeft"))
     {
         m_CameraPosition -= l_Right * l_Velocity;
     }
-    if (Engine::Input::IsKeyDown(GLFW_KEY_D))
+    if (Engine::Input::IsActionDown("MoveRight"))
     {
         m_CameraPosition += l_Right * l_Velocity;
     }
