@@ -98,33 +98,37 @@ No external downloads needed.
 git clone --recursive https://github.com/ThatTanishqTak/Minecraft-Clone.git
 ```
 
+#### Automated (recommended)
+
+Use the provided script to configure and build with **Visual Studio 2022 (MSVC)** and **C++20**:
+
 ```
-cmake --preset x64-debug
-cmake --build --preset x64-debug
+Scripts\Build-Project.bat
 ```
 
-Or manually:
+The script will:
+
+* Prompt for **Debug** or **Release** configuration (default is Debug).
+* Generate a Visual Studio 2022 solution targeting **x64** with C++20 enforced.
+* Build the chosen configuration.
+
+#### Manual
+
+If you prefer manual steps, open a **Developer Command Prompt for VS 2022** and run:
 
 ```
 mkdir build
-cd build
-cmake .. -G "Ninja" -DCMAKE_BUILD_TYPE=Debug
-ninja
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64 -DCMAKE_CXX_STANDARD=20 -DCMAKE_CXX_STANDARD_REQUIRED=ON
+cmake --build build --config Debug
 ```
+
+#### Build output
 
 Build output will appear in:
 
 ```
-bin/Windows-Debug-x64/Minecraft-Clone/
+bin/Windows-<Config>-x64/Minecraft-Clone/
 ```
-
-Containing:
-
-* `Game.exe`
-* `Engined.dll`
-* Copied `Assets/`
-
----
 
 ## **Roadmap**
 
