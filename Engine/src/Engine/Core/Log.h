@@ -28,6 +28,8 @@ namespace Engine
             static std::shared_ptr<spdlog::logger>& GetClientLogger() { return s_ClientLogger; }
 
         private:
+            // Tracks whether the logger has already been initialized to avoid duplicate registration exceptions.
+            static bool s_IsInitialized;
             static std::shared_ptr<spdlog::logger> s_CoreLogger;
             static std::shared_ptr<spdlog::logger> s_ClientLogger;
         };
