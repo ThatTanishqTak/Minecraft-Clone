@@ -85,6 +85,14 @@ namespace Engine
         glUniform1i(l_Location, value);
     }
 
+    bool Shader::HasUniform(const std::string& uniformName) const
+    {
+        // Query without caching because the renderer uses this sparingly to branch its bindings.
+        const GLint l_Location = glGetUniformLocation(m_ProgramID, uniformName.c_str());
+
+        return l_Location != -1;
+    }
+
     void Shader::BindUniformBlock(const std::string& blockName, GLuint bindingPoint) const
     {
         const GLuint l_BlockIndex = glGetUniformBlockIndex(m_ProgramID, blockName.c_str());

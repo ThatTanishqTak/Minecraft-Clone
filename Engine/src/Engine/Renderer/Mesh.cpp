@@ -48,19 +48,22 @@ namespace Engine
 
         m_VertexBuffer->Bind();
 
-        // Position
+        // Position attribute (location = 0)
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, m_Position)));
 
-        // Normal
+        // Normal attribute (location = 1)
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, m_Normal)));
 
-        // Color
+        // Color attribute (location = 2) ensures vertex colors arrive at the shader.
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, m_Color)));
 
         m_VertexBuffer->Unbind();
+
+        // Rebind the index buffer while the VAO is active so the draw call uses the correct element array.
+        m_IndexBuffer->Bind();
         glBindVertexArray(0);
 
         ENGINE_TRACE("Mesh buffers initialized and vertex array configured");

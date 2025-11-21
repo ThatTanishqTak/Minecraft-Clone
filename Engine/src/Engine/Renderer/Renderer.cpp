@@ -1,6 +1,7 @@
 #include "Engine/Renderer/Renderer.h"
 
 #include "Engine/Core/Log.h"
+#include "Engine/Renderer/Texture2D.h"
 
 #include <filesystem>
 #include <fstream>
@@ -86,7 +87,7 @@ namespace Engine
         //ENGINE_TRACE("Renderer::EndFrame - render state finalized");
     }
 
-    void Renderer::SubmitMesh(const Mesh& mesh, const glm::mat4& modelMatrix)
+    void Renderer::SubmitMesh(const Mesh& mesh, const glm::mat4& modelMatrix, const Texture2D* texture)
     {
         if (s_DefaultShader == nullptr || !s_DefaultShader->IsValid())
         {
@@ -95,8 +96,24 @@ namespace Engine
             return;
         }
 
+        // Select the color-only shader path so vertex colors drive the fragment output without sampling textures.
         s_DefaultShader->Bind();
         s_DefaultShader->SetMat4("u_Model", modelMatrix);
+
+        const bool l_ShaderUsesTexture = s_DefaultShader->HasUniform("u_Texture");
+        if (l_ShaderUsesTexture)
+        {
+            // Only bind a texture if one was explicitly provided; avoid fallback bindings so the color path stays texture free.
+            if (texture != nullptr)
+            {
+                texture->Bind(0);
+                s_DefaultShader->SetInt("u_Texture", 0);
+            }
+            else
+            {
+                ENGINE_TRACE("Skipping texture binding for color-only shader path despite sampler uniform availability");
+            }
+        }
 
         mesh.Bind();
         glDrawElements(GL_TRIANGLES, mesh.GetIndexCount(), GL_UNSIGNED_INT, nullptr);

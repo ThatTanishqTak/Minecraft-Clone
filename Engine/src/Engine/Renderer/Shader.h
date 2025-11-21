@@ -21,6 +21,7 @@ namespace Engine
         // Convenience helpers for binding uniforms.
         void SetMat4(const std::string& uniformName, const glm::mat4& matrix) const;
         void SetInt(const std::string& uniformName, int value) const;
+        bool HasUniform(const std::string& uniformName) const;
         void BindUniformBlock(const std::string& blockName, GLuint bindingPoint) const;
 
         GLuint GetProgramId() const { return m_ProgramID; }
