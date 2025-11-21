@@ -33,6 +33,11 @@ bool GameLayer::Initialize()
 
     GAME_INFO("GameLayer initialization starting");
 
+    // Position the camera above the highest generated terrain so the player spawns in open space.
+    const float l_SpawnHeight = CalculateSpawnHeightAboveTerrain();
+    m_CameraPosition.y = l_SpawnHeight;
+    GAME_TRACE("Calculated spawn height {:.2f} to clear generated terrain", l_SpawnHeight);
+
     // Prime camera state so view/projection matrices are valid before the first frame.
     m_Camera.SetPerspective(glm::radians(m_CameraFieldOfViewDegrees), 0.1f, 1000.0f);
     m_Camera.SetPosition(m_CameraPosition);
@@ -272,6 +277,28 @@ void GameLayer::GenerateTestChunk()
     m_IsChunkDirty = true;
 
     GAME_TRACE("Chunk data generated and marked dirty for meshing");
+}
+
+float GameLayer::CalculateSpawnHeightAboveTerrain() const
+{
+    // Mirror the test terrain generation to compute the highest block and float above it.
+    float l_MaxHeight = 0.0f;
+
+    for (int z = 0; z < Chunk::CHUNK_SIZE; ++z)
+    {
+        for (int x = 0; x < Chunk::CHUNK_SIZE; ++x)
+        {
+            const float l_Sample = std::sin(static_cast<float>(x) * 0.3f) + std::cos(static_cast<float>(z) * 0.3f);
+            const float l_Height = static_cast<float>(4 + l_Sample * 2.0f);
+
+            l_MaxHeight = std::max(l_MaxHeight, l_Height);
+        }
+    }
+
+    // Add a buffer so the camera begins safely above the tallest peak.
+    const float l_SpawnHeight = l_MaxHeight + 2.5f;
+
+    return l_SpawnHeight;
 }
 
 void GameLayer::RefreshChunkMesh()

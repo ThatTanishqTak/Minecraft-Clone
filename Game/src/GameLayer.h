@@ -39,11 +39,13 @@ private:
     void GenerateTestChunk();
     void RefreshChunkMesh();
 
+    float CalculateSpawnHeightAboveTerrain() const;
+
 private:
     bool m_IsInitialized = false;
 
     Engine::Camera m_Camera;
-    glm::vec3 m_CameraPosition{ 0.0f, 1.5f, 5.0f };
+    glm::vec3 m_CameraPosition{ 0.0f, 10.5f, 5.0f };
     float m_CameraYawDegrees = -90.0f;
     float m_CameraPitchDegrees = 0.0f;
     float m_CameraFieldOfViewDegrees = 70.0f;
