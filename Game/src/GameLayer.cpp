@@ -46,40 +46,8 @@ bool GameLayer::Initialize()
     Engine::Renderer::SetCamera(m_Camera);
     GAME_TRACE("Camera primed for rendering with FOV {} degrees", m_CameraFieldOfViewDegrees);
 
-    // Load the block texture atlas and build chunk rendering helpers.
-    m_TextureAtlas = std::make_unique<TextureAtlas>();
-    if (!m_TextureAtlas->Load("Assets/Textures/Atlas.png", glm::ivec2{ 32, 32 }))
-    {
-        GAME_ERROR("Failed to load texture atlas from Assets/Textures/Atlas.png");
-
-        return false;
-    }
-    GAME_INFO("Texture atlas loaded successfully");
-
-    // Map block faces to atlas tiles. The sample atlas is a 2x2 grid of solid colors.
-    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::Top, { 0, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::Bottom, { 1, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::North, { 1, 1 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::South, { 1, 1 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::East, { 1, 1 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::West, { 1, 1 });
-
-    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::Top, { 1, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::Bottom, { 1, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::North, { 1, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::South, { 1, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::East, { 1, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::West, { 1, 0 });
-
-    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::Top, { 0, 1 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::Bottom, { 0, 1 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::North, { 0, 1 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::South, { 0, 1 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::East, { 0, 1 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::West, { 0, 1 });
-
     m_Chunk = std::make_unique<Chunk>(glm::ivec3{ 0 });
-    m_ChunkMesher = std::make_unique<ChunkMesher>(*m_TextureAtlas);
+    m_ChunkMesher = std::make_unique<ChunkMesher>();
     m_ChunkRenderer = std::make_unique<ChunkRenderer>();
     GAME_TRACE("Chunk systems created and ready");
 
@@ -201,10 +169,10 @@ void GameLayer::Render()
         return;
     }
 
-    if (m_ChunkRenderer != nullptr && m_TextureAtlas != nullptr)
+    if (m_ChunkRenderer != nullptr)
     {
         // Draw the meshed chunk each frame.
-        m_ChunkRenderer->Render(glm::mat4{ 1.0f }, m_TextureAtlas->GetTexture());
+        m_ChunkRenderer->Render(glm::mat4{ 1.0f });
         //GAME_TRACE("Rendered chunk with current texture atlas");
     }
 }
@@ -228,7 +196,6 @@ void GameLayer::Shutdown()
     m_ChunkRenderer.reset();
     m_ChunkMesher.reset();
     m_Chunk.reset();
-    m_TextureAtlas.reset();
     m_IsInitialized = false;
 
     GAME_INFO("GameLayer shutdown complete");

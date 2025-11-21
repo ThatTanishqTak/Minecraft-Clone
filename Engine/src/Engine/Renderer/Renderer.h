@@ -11,7 +11,6 @@
 #include "Engine/Renderer/Mesh.h"
 #include "Engine/Renderer/RendererCommands.h"
 #include "Engine/Renderer/Shader.h"
-#include "Engine/Renderer/Texture2D.h"
 
 namespace Engine
 {
@@ -24,7 +23,7 @@ namespace Engine
 
         static void BeginFrame();
         static void EndFrame();
-        static void SubmitMesh(const Mesh& mesh, const glm::mat4& modelMatrix, const Texture2D* texture = nullptr);
+        static void SubmitMesh(const Mesh& mesh, const glm::mat4& modelMatrix);
         static void SetCamera(const Camera& camera);
 
         static Camera& GetCamera() { return s_Camera; }
@@ -45,6 +44,5 @@ namespace Engine
 
         static Camera s_Camera;
         static std::shared_ptr<Shader> s_DefaultShader;
-        static std::shared_ptr<Texture2D> s_DefaultTexture;
     };
 }

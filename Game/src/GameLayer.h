@@ -8,7 +8,6 @@
 #include "WorldGeneration/Chunk.h"
 #include "WorldGeneration/ChunkMesher.h"
 #include "WorldGeneration/ChunkRenderer.h"
-#include "WorldGeneration/TextureAtlas.h"
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -55,7 +54,6 @@ private:
     double m_LastFrameTimeSeconds = 0.0;
     float m_DeltaTimeSeconds = 0.0f;
 
-    std::unique_ptr<TextureAtlas> m_TextureAtlas;
     std::unique_ptr<Chunk> m_Chunk;
     std::unique_ptr<ChunkMesher> m_ChunkMesher;
     std::unique_ptr<ChunkRenderer> m_ChunkRenderer;

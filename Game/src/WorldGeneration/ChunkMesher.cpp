@@ -4,7 +4,7 @@
 
 #include <array>
 
-ChunkMesher::ChunkMesher(const TextureAtlas& atlas) : m_Atlas(atlas)
+ChunkMesher::ChunkMesher()
 {
     GAME_TRACE("ChunkMesher constructed");
 }
@@ -167,8 +167,7 @@ void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk
                     l_Normal = glm::vec3{ 0.0f, 0.0f, -1.0f };
                 }
 
-                const BlockFaceUV l_UVs = m_Atlas.GetFaceUVs(l_Current, face);
-                EmitQuad(l_Origin, l_UDirection, l_VDirection, l_Normal, l_UVs, outMesh);
+                EmitQuad(l_Origin, l_UDirection, l_VDirection, l_Normal, l_Current, face, outMesh);
 
                 u += l_Width;
             }
@@ -177,8 +176,8 @@ void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk
     }
 }
 
-void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection, const glm::vec3& vDirection, const glm::vec3& normal, 
-    const BlockFaceUV& UVs, MeshedChunk& outMesh) const
+void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection, const glm::vec3& vDirection, const glm::vec3& normal,
+    BlockId blockId, BlockFace face, MeshedChunk& outMesh) const
 {
     // Generate four vertices forming a quad using supplied orientation vectors.
     const glm::vec3 l_P0 = origin;
@@ -186,11 +185,13 @@ void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection,
     const glm::vec3 l_P2 = origin + uDirection + vDirection;
     const glm::vec3 l_P3 = origin + uDirection;
 
+    const glm::vec3 l_Color = GetBlockFaceColor(blockId, face);
+
     const std::array<Engine::Mesh::Vertex, 4> l_Vertices = {
-        Engine::Mesh::Vertex{ l_P0, normal, UVs.m_UV00 },
-        Engine::Mesh::Vertex{ l_P1, normal, UVs.m_UV01 },
-        Engine::Mesh::Vertex{ l_P2, normal, UVs.m_UV11 },
-        Engine::Mesh::Vertex{ l_P3, normal, UVs.m_UV10 },
+        Engine::Mesh::Vertex{ l_P0, normal, l_Color },
+        Engine::Mesh::Vertex{ l_P1, normal, l_Color },
+        Engine::Mesh::Vertex{ l_P2, normal, l_Color },
+        Engine::Mesh::Vertex{ l_P3, normal, l_Color },
     };
 
     const uint32_t l_StartIndex = static_cast<uint32_t>(outMesh.m_Vertices.size());
@@ -204,4 +205,30 @@ void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection,
     outMesh.m_Indices.insert(outMesh.m_Indices.end(), l_QuadIndices.begin(), l_QuadIndices.end());
 
     GAME_TRACE("Emitted quad at origin ({}, {}, {}) with normal ({}, {}, {})", origin.x, origin.y, origin.z, normal.x, normal.y, normal.z);
+}
+
+glm::vec3 ChunkMesher::GetBlockFaceColor(BlockId blockId, BlockFace face) const
+{
+    // Provide simple, readable colors for each block type to replace UV sampling.
+    // Slightly tint the colors per face to give subtle variation and depth cues.
+    const std::array<glm::vec3, 4> l_BaseColors = {
+        glm::vec3{ 0.0f, 0.0f, 0.0f }, // Air (unused)
+        glm::vec3{ 0.35f, 0.70f, 0.25f }, // Grass
+        glm::vec3{ 0.55f, 0.35f, 0.20f }, // Dirt
+        glm::vec3{ 0.55f, 0.55f, 0.55f }, // Stone
+    };
+
+    const glm::vec3 l_BaseColor = l_BaseColors.at(static_cast<size_t>(blockId));
+
+    const std::array<glm::vec3, static_cast<size_t>(BlockFace::Count)> l_FaceTints = {
+        glm::vec3{ 1.00f, 1.00f, 1.00f }, // North
+        glm::vec3{ 0.95f, 0.95f, 0.95f }, // South
+        glm::vec3{ 0.90f, 0.90f, 0.90f }, // East
+        glm::vec3{ 0.90f, 0.90f, 0.90f }, // West
+        glm::vec3{ 1.05f, 1.05f, 1.05f }, // Top
+        glm::vec3{ 0.85f, 0.85f, 0.85f }, // Bottom
+    };
+
+    const glm::vec3 l_Tint = l_FaceTints.at(static_cast<size_t>(face));
+    return glm::clamp(l_BaseColor * l_Tint, glm::vec3{ 0.0f }, glm::vec3{ 1.0f });
 }

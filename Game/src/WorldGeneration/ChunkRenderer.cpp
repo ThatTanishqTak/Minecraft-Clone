@@ -10,7 +10,7 @@ void ChunkRenderer::UpdateMesh(const MeshedChunk& meshedChunk)
     GAME_TRACE("ChunkRenderer mesh updated with {} vertices and {} indices", meshedChunk.m_Vertices.size(), meshedChunk.m_Indices.size());
 }
 
-void ChunkRenderer::Render(const glm::mat4& modelMatrix, const Engine::Texture2D* texture) const
+void ChunkRenderer::Render(const glm::mat4& modelMatrix) const
 {
     if (m_Mesh == nullptr)
     {
@@ -18,7 +18,7 @@ void ChunkRenderer::Render(const glm::mat4& modelMatrix, const Engine::Texture2D
         return;
     }
 
-    Engine::Renderer::SubmitMesh(*m_Mesh, modelMatrix, texture);
+    Engine::Renderer::SubmitMesh(*m_Mesh, modelMatrix);
 
     //GAME_TRACE("ChunkRenderer submitted mesh for rendering");
 }

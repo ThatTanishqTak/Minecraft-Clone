@@ -6,7 +6,6 @@
 #include "Engine/Renderer/Mesh.h"
 #include "Block.h"
 #include "Chunk.h"
-#include "TextureAtlas.h"
 
 // Stores vertex/index buffers for a meshed chunk ready to upload to the renderer.
 struct MeshedChunk
@@ -19,14 +18,13 @@ struct MeshedChunk
 class ChunkMesher
 {
 public:
-    explicit ChunkMesher(const TextureAtlas& atlas);
+    ChunkMesher();
 
     MeshedChunk Mesh(const Chunk& chunk) const;
 
 private:
     void BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk& outMesh) const;
-    void EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection, const glm::vec3& vDirection, const glm::vec3& normal, const BlockFaceUV& UVs, MeshedChunk& outMesh) const;
-
-private:
-    const TextureAtlas& m_Atlas;
+    void EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection, const glm::vec3& vDirection, const glm::vec3& normal,
+        BlockId blockId, BlockFace face, MeshedChunk& outMesh) const;
+    glm::vec3 GetBlockFaceColor(BlockId blockId, BlockFace face) const;
 };
