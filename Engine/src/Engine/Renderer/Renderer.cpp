@@ -14,6 +14,9 @@ namespace Engine
 {
     GLuint Renderer::s_PerFrameUniformBuffer = 0;
     Camera Renderer::s_Camera;
+    glm::vec3 Renderer::s_DirectionalLightDirection = glm::normalize(glm::vec3(0.3f, 1.0f, 0.5f));
+    glm::vec3 Renderer::s_DirectionalLightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    float Renderer::s_AmbientStrength = 0.05f;
     std::shared_ptr<Shader> Renderer::s_DefaultShader = nullptr;
 
     bool Renderer::Initialize()
@@ -132,6 +135,16 @@ namespace Engine
         //ENGINE_TRACE("Renderer camera updated");
     }
 
+    void Renderer::SetDirectionalLight(const glm::vec3& direction, const glm::vec3& color, float ambientStrength)
+    {
+        // Allow the gameplay layer to drive lighting each frame instead of relying on hardcoded shader values.
+        s_DirectionalLightDirection = glm::normalize(direction);
+        s_DirectionalLightColor = color;
+        s_AmbientStrength = ambientStrength;
+
+        //ENGINE_TRACE("Directional light updated: dir ({}, {}, {}), color ({}, {}, {}), ambient {}", s_DirectionalLightDirection.x, s_DirectionalLightDirection.y, s_DirectionalLightDirection.z, s_DirectionalLightColor.r, s_DirectionalLightColor.g, s_DirectionalLightColor.b, s_AmbientStrength);
+    }
+
     bool Renderer::CreatePerFrameBuffer()
     {
         glGenBuffers(1, &s_PerFrameUniformBuffer);
@@ -165,6 +178,10 @@ namespace Engine
         PerFrameData l_Data{};
         l_Data.m_View = s_Camera.GetViewMatrix();
         l_Data.m_Projection = s_Camera.GetProjectionMatrix();
+        l_Data.m_LightDirection = glm::vec4(glm::normalize(s_DirectionalLightDirection), 0.0f);
+        l_Data.m_LightColor = glm::vec4(s_DirectionalLightColor, 0.0f);
+        l_Data.m_AmbientStrength = s_AmbientStrength;
+        l_Data.m_Padding = glm::vec3(0.0f);
 
         glBindBuffer(GL_UNIFORM_BUFFER, s_PerFrameUniformBuffer);
         glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(PerFrameData), &l_Data);

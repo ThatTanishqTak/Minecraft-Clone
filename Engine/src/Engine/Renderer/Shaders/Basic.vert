@@ -9,6 +9,9 @@ layout(std140, binding = 0) uniform PerFrame
 {
     mat4 u_View;
     mat4 u_Projection;
+    vec4 u_LightDirection; // xyz is the direction, w is unused for now
+    vec4 u_LightColor;     // xyz is the color, w is unused for now
+    float u_AmbientStrength;
 };
 
 uniform mat4 u_Model;
