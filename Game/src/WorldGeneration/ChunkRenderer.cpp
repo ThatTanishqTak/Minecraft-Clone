@@ -20,5 +20,5 @@ void ChunkRenderer::Render(const glm::mat4& modelMatrix, const Engine::Texture2D
 
     Engine::Renderer::SubmitMesh(*m_Mesh, modelMatrix, texture);
 
-    GAME_TRACE("ChunkRenderer submitted mesh for rendering");
+    //GAME_TRACE("ChunkRenderer submitted mesh for rendering");
 }

@@ -82,6 +82,7 @@ bool Chunk::IsFaceVisible(int x, int y, int z, BlockFace face) const
 {
     const size_t l_Index = ToIndex(x, y, z);
     const uint8_t l_Mask = m_VisibilityMasks[l_Index];
+
     return (l_Mask & (1u << static_cast<uint8_t>(face))) != 0;
 }
 
@@ -90,6 +91,7 @@ size_t Chunk::ToIndex(int x, int y, int z) const
     const int l_ClampedX = std::clamp(x, 0, CHUNK_SIZE - 1);
     const int l_ClampedY = std::clamp(y, 0, CHUNK_SIZE - 1);
     const int l_ClampedZ = std::clamp(z, 0, CHUNK_SIZE - 1);
+
     return static_cast<size_t>(l_ClampedX + CHUNK_SIZE * (l_ClampedY + CHUNK_SIZE * l_ClampedZ));
 }
 

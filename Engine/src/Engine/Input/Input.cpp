@@ -27,7 +27,7 @@ namespace Engine
     void Input::BeginFrame()
     {
         // Trace frame boundary to help diagnose transient input issues.
-        ENGINE_TRACE("Input::BeginFrame - resetting transient input state");
+        //ENGINE_TRACE("Input::BeginFrame - resetting transient input state");
 
         // Reset transient state at the start of every frame so edge-triggered queries stay accurate.
         s_KeysPressedThisFrame.clear();
@@ -45,7 +45,7 @@ namespace Engine
     {
         // Placeholder for future per-frame bookkeeping. Left intentionally light so callers can
         // extend the lifecycle without changing call sites.
-        ENGINE_TRACE("Input::EndFrame - frame input processing complete");
+        //ENGINE_TRACE("Input::EndFrame - frame input processing complete");
     }
 
     void Input::OnEvent(const Event& event)

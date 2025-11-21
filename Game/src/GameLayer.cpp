@@ -108,12 +108,12 @@ void GameLayer::Update()
     m_DeltaTimeSeconds = static_cast<float>(l_CurrentTimeSeconds - m_LastFrameTimeSeconds);
     m_LastFrameTimeSeconds = l_CurrentTimeSeconds;
 
-    GAME_TRACE("Frame update started with delta time: {} seconds", m_DeltaTimeSeconds);
+    //GAME_TRACE("Frame update started with delta time: {} seconds", m_DeltaTimeSeconds);
 
     if (m_IsChunkDirty && m_ChunkMesher != nullptr)
     {
         // Rebuild the GPU mesh if blocks changed.
-        GAME_TRACE("Chunk marked dirty, rebuilding mesh");
+        //GAME_TRACE("Chunk marked dirty, rebuilding mesh");
         RefreshChunkMesh();
     }
 
@@ -121,19 +121,19 @@ void GameLayer::Update()
     const bool l_WasEscapePressed = Engine::Input::WasKeyPressedThisFrame(GLFW_KEY_ESCAPE);
     if (l_WasEscapePressed)
     {
-        GAME_INFO("Escape was pressed this frame");
+        //GAME_INFO("Escape was pressed this frame");
     }
 
     const bool l_IsSprinting = Engine::Input::IsActionDown("Sprint");
     if (l_IsSprinting)
     {
-        GAME_INFO("Sprint combo is held");
+        //GAME_INFO("Sprint combo is held");
     }
 
     const bool l_MoveTriggered = Engine::Input::WasActionPressedThisFrame("MoveForward");
     if (l_MoveTriggered)
     {
-        GAME_INFO("MoveForward triggered this frame");
+        //GAME_INFO("MoveForward triggered this frame");
     }
 
     // Update camera orientation from mouse movement.
@@ -200,7 +200,7 @@ void GameLayer::Render()
     {
         // Draw the meshed chunk each frame.
         m_ChunkRenderer->Render(glm::mat4{ 1.0f }, m_TextureAtlas->GetTexture());
-        GAME_TRACE("Rendered chunk with current texture atlas");
+        //GAME_TRACE("Rendered chunk with current texture atlas");
     }
 }
 
@@ -278,15 +278,16 @@ void GameLayer::RefreshChunkMesh()
 {
     if (m_ChunkMesher == nullptr || m_ChunkRenderer == nullptr || m_Chunk == nullptr)
     {
-        GAME_WARN("RefreshChunkMesh called with missing components");
+        //GAME_WARN("RefreshChunkMesh called with missing components");
+
         return;
     }
 
     const MeshedChunk l_MeshedChunk = m_ChunkMesher->Mesh(*m_Chunk);
-    GAME_TRACE("Meshed chunk produced {} vertices and {} indices", l_MeshedChunk.m_Vertices.size(), l_MeshedChunk.m_Indices.size());
+    //GAME_TRACE("Meshed chunk produced {} vertices and {} indices", l_MeshedChunk.m_Vertices.size(), l_MeshedChunk.m_Indices.size());
 
     m_ChunkRenderer->UpdateMesh(l_MeshedChunk);
     m_IsChunkDirty = false;
 
-    GAME_INFO("Chunk mesh refreshed and uploaded to renderer");
+    //GAME_INFO("Chunk mesh refreshed and uploaded to renderer");
 }

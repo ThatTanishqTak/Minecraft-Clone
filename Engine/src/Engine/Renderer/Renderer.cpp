@@ -71,7 +71,7 @@ namespace Engine
 
     void Renderer::BeginFrame()
     {
-        ENGINE_TRACE("Renderer::BeginFrame - preparing render state");
+        //ENGINE_TRACE("Renderer::BeginFrame - preparing render state");
 
         // Sync projection with the framebuffer to avoid stretching when windows are resized.
         GLint l_Viewport[4] = { 0, 0, 0, 0 };
@@ -92,7 +92,7 @@ namespace Engine
     void Renderer::EndFrame()
     {
         // Future post-processing and debug UI could be wired here.
-        ENGINE_TRACE("Renderer::EndFrame - render state finalized");
+        //ENGINE_TRACE("Renderer::EndFrame - render state finalized");
     }
 
     void Renderer::SubmitMesh(const Mesh& mesh, const glm::mat4& modelMatrix, const Texture2D* texture)
@@ -125,7 +125,7 @@ namespace Engine
 
         s_DefaultShader->Unbind();
 
-        ENGINE_TRACE("SubmitMesh drew {} indices", mesh.GetIndexCount());
+        //ENGINE_TRACE("SubmitMesh drew {} indices", mesh.GetIndexCount());
     }
 
     void Renderer::SetCamera(const Camera& camera)
@@ -133,7 +133,7 @@ namespace Engine
         // Copy camera state from the gameplay layer so per-frame data matches gameplay intent.
         s_Camera = camera;
 
-        ENGINE_TRACE("Renderer camera updated");
+        //ENGINE_TRACE("Renderer camera updated");
     }
 
     bool Renderer::CreatePerFrameBuffer()
@@ -174,7 +174,7 @@ namespace Engine
         glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(PerFrameData), &l_Data);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-        ENGINE_TRACE("Per-frame uniform buffer updated");
+        //ENGINE_TRACE("Per-frame uniform buffer updated");
     }
 
     std::string Renderer::LoadShaderSource(const std::string& filename)
