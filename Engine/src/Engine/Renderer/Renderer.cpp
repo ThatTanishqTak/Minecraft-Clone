@@ -5,6 +5,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <array>
 
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -13,6 +14,7 @@ namespace Engine
     GLuint Renderer::s_PerFrameUniformBuffer = 0;
     Camera Renderer::s_Camera;
     std::shared_ptr<Shader> Renderer::s_DefaultShader = nullptr;
+    std::shared_ptr<Texture2D> Renderer::s_DefaultTexture = nullptr;
 
     bool Renderer::Initialize()
     {
@@ -25,6 +27,10 @@ namespace Engine
         }
 
         s_DefaultShader->BindUniformBlock("PerFrame", s_PerFrameBindingPoint);
+
+        // Prime a simple white texture in case renderables do not supply their own.
+        const std::array<unsigned char, 4> l_WhitePixel{ 255, 255, 255, 255 };
+        s_DefaultTexture = std::make_shared<Texture2D>(1, 1, 4, l_WhitePixel.data());
 
         if (!CreatePerFrameBuffer())
         {
@@ -40,6 +46,7 @@ namespace Engine
     void Renderer::Shutdown()
     {
         s_DefaultShader.reset();
+        s_DefaultTexture.reset();
 
         if (s_PerFrameUniformBuffer != 0)
         {
@@ -71,7 +78,7 @@ namespace Engine
         // Future post-processing and debug UI could be wired here.
     }
 
-    void Renderer::SubmitMesh(const Mesh& mesh, const glm::mat4& modelMatrix)
+    void Renderer::SubmitMesh(const Mesh& mesh, const glm::mat4& modelMatrix, const Texture2D* texture)
     {
         if (s_DefaultShader == nullptr || !s_DefaultShader->IsValid())
         {
@@ -80,6 +87,18 @@ namespace Engine
 
         s_DefaultShader->Bind();
         s_DefaultShader->SetMat4("u_Model", modelMatrix);
+
+        const Texture2D* l_Texture = texture;
+        if (l_Texture == nullptr)
+        {
+            l_Texture = s_DefaultTexture.get();
+        }
+
+        if (l_Texture != nullptr && l_Texture->IsValid())
+        {
+            l_Texture->Bind(0);
+            s_DefaultShader->SetInt("u_Texture", 0);
+        }
 
         mesh.Bind();
         glDrawElements(GL_TRIANGLES, mesh.GetIndexCount(), GL_UNSIGNED_INT, nullptr);

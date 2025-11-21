@@ -54,6 +54,12 @@ namespace Engine
         glUniformMatrix4fv(l_Location, 1, GL_FALSE, &matrix[0][0]);
     }
 
+    void Shader::SetInt(const std::string& uniformName, int value) const
+    {
+        const GLint l_Location = glGetUniformLocation(m_ProgramId, uniformName.c_str());
+        glUniform1i(l_Location, value);
+    }
+
     void Shader::BindUniformBlock(const std::string& blockName, GLuint bindingPoint) const
     {
         const GLuint l_BlockIndex = glGetUniformBlockIndex(m_ProgramId, blockName.c_str());

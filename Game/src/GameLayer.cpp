@@ -3,7 +3,6 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <vector>
 
 #include "Engine/Events/Events.h"
 #include "Engine/Input/Input.h"
@@ -36,14 +35,42 @@ bool GameLayer::Initialize()
     m_Camera.SetUp(glm::vec3{ 0.0f, 1.0f, 0.0f });
     Engine::Renderer::SetCamera(m_Camera);
 
-    // Create basic world geometry so rendering exercises the mesh pipeline instead of placeholders.
-    m_WorldMesh = CreateCubeMesh();
-    if (m_WorldMesh == nullptr)
+    // Load the block texture atlas and build chunk rendering helpers.
+    m_TextureAtlas = std::make_unique<TextureAtlas>();
+    if (!m_TextureAtlas->Load("Assets/Textures/Atlas.png", glm::ivec2{ 32, 32 }))
     {
-        std::cout << "Failed to create world mesh" << std::endl;
-
+        std::cout << "Failed to load texture atlas" << std::endl;
         return false;
     }
+
+    // Map block faces to atlas tiles. The sample atlas is a 2x2 grid of solid colors.
+    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::Top, { 0, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::Bottom, { 1, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::North, { 1, 1 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::South, { 1, 1 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::East, { 1, 1 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::West, { 1, 1 });
+
+    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::Top, { 1, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::Bottom, { 1, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::North, { 1, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::South, { 1, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::East, { 1, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::West, { 1, 0 });
+
+    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::Top, { 0, 1 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::Bottom, { 0, 1 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::North, { 0, 1 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::South, { 0, 1 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::East, { 0, 1 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::West, { 0, 1 });
+
+    m_Chunk = std::make_unique<Chunk>(glm::ivec3{ 0 });
+    m_ChunkMesher = std::make_unique<ChunkMesher>(*m_TextureAtlas);
+    m_ChunkRenderer = std::make_unique<ChunkRenderer>();
+
+    GenerateTestChunk();
+    RefreshChunkMesh();
 
     // Bind example gameplay actions to specific inputs so Update() can consume them.
     Engine::Input::RegisterActionMapping("MoveForward", { GLFW_KEY_W });
@@ -68,6 +95,12 @@ void GameLayer::Update()
     const double l_CurrentTimeSeconds = glfwGetTime();
     m_DeltaTimeSeconds = static_cast<float>(l_CurrentTimeSeconds - m_LastFrameTimeSeconds);
     m_LastFrameTimeSeconds = l_CurrentTimeSeconds;
+
+    if (m_IsChunkDirty && m_ChunkMesher != nullptr)
+    {
+        // Rebuild the GPU mesh if blocks changed.
+        RefreshChunkMesh();
+    }
 
     // Demonstrate the new input API by polling both edge and hold state.
     const bool l_WasEscapePressed = Engine::Input::WasKeyPressedThisFrame(GLFW_KEY_ESCAPE);
@@ -148,10 +181,10 @@ void GameLayer::Render()
         return;
     }
 
-    if (m_WorldMesh != nullptr)
+    if (m_ChunkRenderer != nullptr && m_TextureAtlas != nullptr)
     {
-        // Draw the placeholder cube as world geometry until chunk meshes are available.
-        Engine::Renderer::SubmitMesh(*m_WorldMesh, glm::mat4{ 1.0f });
+        // Draw the meshed chunk each frame.
+        m_ChunkRenderer->Render(glm::mat4{ 1.0f }, m_TextureAtlas->GetTexture());
     }
 }
 
@@ -169,53 +202,62 @@ void GameLayer::Shutdown()
         return;
     }
 
-    m_WorldMesh.reset();
+    m_ChunkRenderer.reset();
+    m_ChunkMesher.reset();
+    m_Chunk.reset();
+    m_TextureAtlas.reset();
     m_IsInitialized = false;
 }
 
-std::unique_ptr<Engine::Mesh> GameLayer::CreateCubeMesh()
+void GameLayer::GenerateTestChunk()
 {
-    // Simple unit cube centered at origin; acts as a stand-in for chunk data.
-    const std::vector<Engine::Mesh::Vertex> l_Vertices = {
-        { { -0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 0.0f } },
-        { { 0.5f, -0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 0.0f } },
-        { { 0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 1.0f, 1.0f } },
-        { { -0.5f, 0.5f, -0.5f }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 1.0f } },
+    if (m_Chunk == nullptr)
+    {
+        return;
+    }
 
-        { { -0.5f, -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f } },
-        { { 0.5f, -0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 0.0f } },
-        { { 0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 1.0f, 1.0f } },
-        { { -0.5f, 0.5f, 0.5f }, { 0.0f, 0.0f, 1.0f }, { 0.0f, 1.0f } },
+    for (int l_Z = 0; l_Z < Chunk::CHUNK_SIZE; ++l_Z)
+    {
+        for (int l_X = 0; l_X < Chunk::CHUNK_SIZE; ++l_X)
+        {
+            // Use a light wave to vary terrain height across the chunk.
+            const float l_Sample = std::sin(static_cast<float>(l_X) * 0.3f) + std::cos(static_cast<float>(l_Z) * 0.3f);
+            const int l_Height = static_cast<int>(4 + l_Sample * 2.0f);
 
-        { { -0.5f, 0.5f, 0.5f }, { -1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
-        { { -0.5f, 0.5f, -0.5f }, { -1.0f, 0.0f, 0.0f }, { 1.0f, 1.0f } },
-        { { -0.5f, -0.5f, -0.5f }, { -1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f } },
-        { { -0.5f, -0.5f, 0.5f }, { -1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
+            for (int l_Y = 0; l_Y < Chunk::CHUNK_SIZE; ++l_Y)
+            {
+                BlockId l_Block = BlockId::Air;
 
-        { { 0.5f, 0.5f, 0.5f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 0.0f } },
-        { { 0.5f, 0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 1.0f, 1.0f } },
-        { { 0.5f, -0.5f, -0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f } },
-        { { 0.5f, -0.5f, 0.5f }, { 1.0f, 0.0f, 0.0f }, { 0.0f, 0.0f } },
+                if (l_Y < l_Height - 2)
+                {
+                    l_Block = BlockId::Stone;
+                }
+                else if (l_Y < l_Height - 1)
+                {
+                    l_Block = BlockId::Dirt;
+                }
+                else if (l_Y == l_Height - 1)
+                {
+                    l_Block = BlockId::Grass;
+                }
 
-        { { -0.5f, -0.5f, -0.5f }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 1.0f } },
-        { { 0.5f, -0.5f, -0.5f }, { 0.0f, -1.0f, 0.0f }, { 1.0f, 1.0f } },
-        { { 0.5f, -0.5f, 0.5f }, { 0.0f, -1.0f, 0.0f }, { 1.0f, 0.0f } },
-        { { -0.5f, -0.5f, 0.5f }, { 0.0f, -1.0f, 0.0f }, { 0.0f, 0.0f } },
+                m_Chunk->SetBlock(l_X, l_Y, l_Z, l_Block);
+            }
+        }
+    }
 
-        { { -0.5f, 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f } },
-        { { 0.5f, 0.5f, -0.5f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 1.0f } },
-        { { 0.5f, 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f }, { 1.0f, 0.0f } },
-        { { -0.5f, 0.5f, 0.5f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f } }
-    };
+    m_Chunk->RebuildVisibility();
+    m_IsChunkDirty = true;
+}
 
-    const std::vector<uint32_t> l_Indices = {
-        0, 1, 2, 2, 3, 0,
-        4, 5, 6, 6, 7, 4,
-        8, 9, 10, 10, 11, 8,
-        12, 13, 14, 14, 15, 12,
-        16, 17, 18, 18, 19, 16,
-        20, 21, 22, 22, 23, 20
-    };
+void GameLayer::RefreshChunkMesh()
+{
+    if (m_ChunkMesher == nullptr || m_ChunkRenderer == nullptr || m_Chunk == nullptr)
+    {
+        return;
+    }
 
-    return std::make_unique<Engine::Mesh>(l_Vertices, l_Indices);
+    const MeshedChunk l_MeshedChunk = m_ChunkMesher->Mesh(*m_Chunk);
+    m_ChunkRenderer->UpdateMesh(l_MeshedChunk);
+    m_IsChunkDirty = false;
 }

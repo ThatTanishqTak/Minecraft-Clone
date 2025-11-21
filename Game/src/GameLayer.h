@@ -5,6 +5,11 @@
 #include "Engine/Renderer/Camera.h"
 #include "Engine/Renderer/Mesh.h"
 
+#include "WorldGeneration/Chunk.h"
+#include "WorldGeneration/ChunkMesher.h"
+#include "WorldGeneration/ChunkRenderer.h"
+#include "WorldGeneration/TextureAtlas.h"
+
 #include <glm/glm.hpp>
 #include <memory>
 
@@ -31,8 +36,8 @@ public:
     void Shutdown() override;
 
 private:
-    // Create simple placeholder mesh data to stand in for the world until chunk data exists.
-    std::unique_ptr<Engine::Mesh> CreateCubeMesh();
+    void GenerateTestChunk();
+    void RefreshChunkMesh();
 
 private:
     bool m_IsInitialized = false;
@@ -48,5 +53,9 @@ private:
     double m_LastFrameTimeSeconds = 0.0;
     float m_DeltaTimeSeconds = 0.0f;
 
-    std::unique_ptr<Engine::Mesh> m_WorldMesh;
+    std::unique_ptr<TextureAtlas> m_TextureAtlas;
+    std::unique_ptr<Chunk> m_Chunk;
+    std::unique_ptr<ChunkMesher> m_ChunkMesher;
+    std::unique_ptr<ChunkRenderer> m_ChunkRenderer;
+    bool m_IsChunkDirty = false;
 };
