@@ -31,6 +31,8 @@ namespace Engine
 
 			s_CoreLogger = a_CreateLogger("ENGINE");
 			s_ClientLogger = a_CreateLogger("GAME");
+
+			ENGINE_INFO("Logging system initialized with console and file sinks");
 		}
 	}
 }

@@ -25,7 +25,7 @@ namespace Engine
         void InitializeTexture(int width, int height, int channels, const unsigned char* data);
 
     private:
-        GLuint m_TextureId = 0;
+        GLuint m_TextureID = 0;
         int m_Width = 0;
         int m_Height = 0;
         int m_Channels = 0;

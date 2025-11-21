@@ -1,4 +1,5 @@
 #include "Engine/Input/Input.h"
+#include "Engine/Core/Log.h"
 
 #include <GLFW/glfw3.h>
 
@@ -25,6 +26,9 @@ namespace Engine
 
     void Input::BeginFrame()
     {
+        // Trace frame boundary to help diagnose transient input issues.
+        ENGINE_TRACE("Input::BeginFrame - resetting transient input state");
+
         // Reset transient state at the start of every frame so edge-triggered queries stay accurate.
         s_KeysPressedThisFrame.clear();
         s_KeysReleasedThisFrame.clear();
@@ -41,10 +45,13 @@ namespace Engine
     {
         // Placeholder for future per-frame bookkeeping. Left intentionally light so callers can
         // extend the lifecycle without changing call sites.
+        ENGINE_TRACE("Input::EndFrame - frame input processing complete");
     }
 
     void Input::OnEvent(const Event& event)
     {
+        ENGINE_TRACE("Input::OnEvent - received event type {}", static_cast<int>(event.GetEventType()));
+
         switch (event.GetEventType())
         {
         case EventType::KeyPressed:
@@ -57,7 +64,9 @@ namespace Engine
             if (!l_IsRepeat)
             {
                 s_KeysPressedThisFrame.insert(l_KeyEvent.GetKeyCode());
+                ENGINE_TRACE("Key {} pressed", l_KeyEvent.GetKeyCode());
             }
+            
             break;
         }
         case EventType::KeyReleased:
@@ -65,6 +74,8 @@ namespace Engine
             const KeyReleasedEvent& l_KeyEvent = static_cast<const KeyReleasedEvent&>(event);
             s_KeyStates[l_KeyEvent.GetKeyCode()] = false;
             s_KeysReleasedThisFrame.insert(l_KeyEvent.GetKeyCode());
+            ENGINE_TRACE("Key {} released", l_KeyEvent.GetKeyCode());
+            
             break;
         }
         case EventType::MouseButtonPressed:
@@ -72,6 +83,8 @@ namespace Engine
             const MouseButtonPressedEvent& l_MouseEvent = static_cast<const MouseButtonPressedEvent&>(event);
             s_MouseButtonStates[l_MouseEvent.GetMouseButton()] = true;
             s_MouseButtonsPressedThisFrame.insert(l_MouseEvent.GetMouseButton());
+            ENGINE_TRACE("Mouse button {} pressed", l_MouseEvent.GetMouseButton());
+            
             break;
         }
         case EventType::MouseButtonReleased:
@@ -79,6 +92,8 @@ namespace Engine
             const MouseButtonReleasedEvent& l_MouseEvent = static_cast<const MouseButtonReleasedEvent&>(event);
             s_MouseButtonStates[l_MouseEvent.GetMouseButton()] = false;
             s_MouseButtonsReleasedThisFrame.insert(l_MouseEvent.GetMouseButton());
+            ENGINE_TRACE("Mouse button {} released", l_MouseEvent.GetMouseButton());
+            
             break;
         }
         case EventType::MouseMoved:
@@ -97,6 +112,8 @@ namespace Engine
                 s_MouseX = l_MouseEvent.GetX();
                 s_MouseY = l_MouseEvent.GetY();
             }
+            ENGINE_TRACE("Mouse moved to ({}, {})", s_MouseX, s_MouseY);
+            
             break;
         }
         case EventType::MouseScrolled:
@@ -104,6 +121,8 @@ namespace Engine
             const MouseScrolledEvent& l_MouseEvent = static_cast<const MouseScrolledEvent&>(event);
             s_ScrollDeltaX += l_MouseEvent.GetXOffset();
             s_ScrollDeltaY += l_MouseEvent.GetYOffset();
+            ENGINE_TRACE("Mouse scrolled with delta ({}, {})", s_ScrollDeltaX, s_ScrollDeltaY);
+
             break;
         }
         default:

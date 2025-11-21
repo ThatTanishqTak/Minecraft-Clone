@@ -22,6 +22,8 @@ namespace Engine
 
     Application::~Application()
     {
+        ENGINE_INFO("Destroying Application instance");
+
         Shutdown();
 
         ENGINE_TRACE("Application shutdown complete");
@@ -31,16 +33,22 @@ namespace Engine
     {
         // The engine owns the gameplay layer to ensure shutdown is coordinated in one place.
         m_GameLayer = std::move(gameLayer);
+
+        ENGINE_INFO("Game layer registered");
     }
 
     void Application::RegisterGameLayerFactory(std::function<std::unique_ptr<Layer>()> gameLayerFactory)
     {
         // Store the factory so the engine can create the gameplay layer when ready.
         m_GameLayerFactory = std::move(gameLayerFactory);
+
+        ENGINE_INFO("Game layer factory registered");
     }
 
     bool Application::Initialize()
     {
+        ENGINE_INFO("Application initialization starting");
+
         Engine::Utilities::Log::Initialize();
 
         bool l_IsGlfwInitialized = glfwInit();
@@ -68,7 +76,7 @@ namespace Engine
             return false;
         }
 
-                // Dispatch input and window events to the active layer before per-frame work executes.
+        // Dispatch input and window events to the active layer before per-frame work executes.
         m_Window.SetEventCallback([this](const Event& event)
             {
                 OnEvent(event);
@@ -91,11 +99,15 @@ namespace Engine
             return false;
         }
 
+        ENGINE_INFO("Application initialization completed successfully");
+
         return true;
     }
 
     void Application::Shutdown()
     {
+        ENGINE_INFO("Application shutdown starting");
+
         // Ensure the gameplay layer is shut down before the renderer and window are destroyed.
         ShutdownGameLayer();
 
@@ -110,6 +122,8 @@ namespace Engine
         }
 
         m_Window.Shutdown();
+
+        ENGINE_INFO("Application shutdown finished");
     }
 
     bool Application::InitializeGameLayer()
@@ -152,6 +166,8 @@ namespace Engine
             return;
         }
 
+        ENGINE_TRACE("Shutting down game layer");
+
         m_GameLayer->Shutdown();
         m_GameLayer.reset();
         m_IsGameLayerInitialized = false;
@@ -166,6 +182,8 @@ namespace Engine
 
             return;
         }
+
+        ENGINE_INFO("Application main loop starting");
 
         if (!InitializeGameLayer())
         {
@@ -199,6 +217,8 @@ namespace Engine
 
         // Ensure the gameplay layer shuts down cleanly after the main loop ends.
         ShutdownGameLayer();
+
+        ENGINE_INFO("Application main loop exited");
     }
 
     void Application::OnEvent(const Event& event)
@@ -209,6 +229,7 @@ namespace Engine
         // Safely forward the event to the gameplay layer when it exists and is ready.
         if (m_IsGameLayerInitialized && m_GameLayer != nullptr)
         {
+            ENGINE_TRACE("Forwarding event to game layer");
             m_GameLayer->OnEvent(event);
         }
     }

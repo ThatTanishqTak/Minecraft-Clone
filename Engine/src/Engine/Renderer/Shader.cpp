@@ -18,6 +18,8 @@ namespace Engine
             glDeleteShader(l_VertexShader);
             glDeleteShader(l_FragmentShader);
 
+            ENGINE_ERROR("Shader creation failed during compilation stage");
+
             return;
         }
 
@@ -26,6 +28,15 @@ namespace Engine
 
         glDeleteShader(l_VertexShader);
         glDeleteShader(l_FragmentShader);
+
+        if (m_IsValid)
+        {
+            ENGINE_INFO("Shader program created successfully with ID {}", m_ProgramID);
+        }
+        else
+        {
+            ENGINE_ERROR("Shader program linking failed");
+        }
     }
 
     Shader::~Shader()
@@ -36,6 +47,8 @@ namespace Engine
             glDeleteProgram(m_ProgramID);
             m_ProgramID = 0;
         }
+
+        ENGINE_TRACE("Shader program destroyed");
     }
 
     void Shader::Bind() const
@@ -51,12 +64,24 @@ namespace Engine
     void Shader::SetMat4(const std::string& uniformName, const glm::mat4& matrix) const
     {
         const GLint l_Location = glGetUniformLocation(m_ProgramID, uniformName.c_str());
+        if (l_Location == -1)
+        {
+            ENGINE_WARN("Uniform '{}' not found when setting mat4", uniformName);
+         
+            return;
+        }
         glUniformMatrix4fv(l_Location, 1, GL_FALSE, &matrix[0][0]);
     }
 
     void Shader::SetInt(const std::string& uniformName, int value) const
     {
         const GLint l_Location = glGetUniformLocation(m_ProgramID, uniformName.c_str());
+        if (l_Location == -1)
+        {
+            ENGINE_WARN("Uniform '{}' not found when setting int", uniformName);
+
+            return;
+        }
         glUniform1i(l_Location, value);
     }
 
@@ -66,6 +91,11 @@ namespace Engine
         if (l_BlockIndex != GL_INVALID_INDEX)
         {
             glUniformBlockBinding(m_ProgramID, l_BlockIndex, bindingPoint);
+            ENGINE_TRACE("Uniform block '{}' bound to point {}", blockName, bindingPoint);
+        }
+        else
+        {
+            ENGINE_WARN("Uniform block '{}' not found", blockName);
         }
     }
 
@@ -89,6 +119,8 @@ namespace Engine
             return false;
         }
 
+        ENGINE_TRACE("Shader stage {} compiled successfully", shaderID);
+
         return true;
     }
 
@@ -111,6 +143,8 @@ namespace Engine
 
             return false;
         }
+
+        ENGINE_TRACE("Shader program {} linked successfully", m_ProgramID);
 
         return true;
     }

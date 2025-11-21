@@ -18,6 +18,8 @@ bool TextureAtlas::Load(const std::string& filePath, const glm::ivec2& tileSize)
     m_TileSize = tileSize;
     m_TextureSize = glm::ivec2{ m_Texture->GetWidth(), m_Texture->GetHeight() };
 
+    GAME_TRACE("Texture atlas dimensions resolved to {}x{}", m_TextureSize.x, m_TextureSize.y);
+
     return true;
 }
 
@@ -35,6 +37,8 @@ void TextureAtlas::RegisterBlockFace(BlockId blockID, BlockFace face, const glm:
     l_FaceUV.m_UV01 = glm::vec2{ l_UVMin.x, l_UVMax.y };
 
     m_BlockFaceUVs[blockID][static_cast<size_t>(face)] = l_FaceUV;
+
+    GAME_TRACE("Registered UVs for block {} face {} at tile ({}, {})", static_cast<int>(blockID), static_cast<int>(face), tileIndex.x, tileIndex.y);
 }
 
 BlockFaceUV TextureAtlas::GetFaceUVs(BlockId blockID, BlockFace face) const
@@ -44,6 +48,8 @@ BlockFaceUV TextureAtlas::GetFaceUVs(BlockId blockID, BlockFace face) const
     {
         return l_FaceIt->second[static_cast<size_t>(face)];
     }
+
+    GAME_WARN("UVs requested for unregistered block {} face {}", static_cast<int>(blockID), static_cast<int>(face));
 
     return {};
 }

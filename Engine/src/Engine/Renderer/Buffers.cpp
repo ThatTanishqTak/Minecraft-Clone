@@ -1,5 +1,7 @@
 #include "Engine/Renderer/Buffers.h"
 
+#include "Engine/Core/Log.h"
+
 namespace Engine
 {
     VertexBuffer::VertexBuffer(const void* data, size_t sizeInBytes, GLenum usage)
@@ -8,8 +10,10 @@ namespace Engine
         glGenBuffers(1, &m_BufferId);
         Bind();
         glBufferData(GL_ARRAY_BUFFER, static_cast<GLsizeiptr>(sizeInBytes), data, usage);
-        
+
         Unbind();
+
+        ENGINE_TRACE("VertexBuffer created with {} bytes", sizeInBytes);
     }
 
     VertexBuffer::~VertexBuffer()
@@ -20,6 +24,8 @@ namespace Engine
             glDeleteBuffers(1, &m_BufferId);
             m_BufferId = 0;
         }
+
+        ENGINE_TRACE("VertexBuffer destroyed");
     }
 
     void VertexBuffer::Bind() const
@@ -50,6 +56,8 @@ namespace Engine
         const GLsizeiptr l_SizeInBytes = static_cast<GLsizeiptr>(count * l_BytesPerIndex);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, l_SizeInBytes, data, usage);
         Unbind();
+
+        ENGINE_TRACE("IndexBuffer created with {} indices", count);
     }
 
     IndexBuffer::~IndexBuffer()
@@ -60,6 +68,8 @@ namespace Engine
             glDeleteBuffers(1, &m_BufferId);
             m_BufferId = 0;
         }
+
+        ENGINE_TRACE("IndexBuffer destroyed");
     }
 
     void IndexBuffer::Bind() const

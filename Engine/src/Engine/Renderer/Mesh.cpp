@@ -1,5 +1,7 @@
 #include "Engine/Renderer/Mesh.h"
 
+#include "Engine/Core/Log.h"
+
 #include <cstddef>
 
 namespace Engine
@@ -8,6 +10,8 @@ namespace Engine
     {
         // Build the GPU resources immediately so the mesh is ready for rendering.
         InitializeBuffers(vertices, indices);
+
+        ENGINE_TRACE("Mesh created with {} vertices and {} indices", vertices.size(), indices.size());
     }
 
     Mesh::~Mesh()
@@ -18,6 +22,8 @@ namespace Engine
             glDeleteVertexArrays(1, &m_VertexArrayObject);
             m_VertexArrayObject = 0;
         }
+
+        ENGINE_TRACE("Mesh resources released");
     }
 
     void Mesh::Bind() const
@@ -56,5 +62,7 @@ namespace Engine
 
         m_VertexBuffer->Unbind();
         glBindVertexArray(0);
+
+        ENGINE_TRACE("Mesh buffers initialized and vertex array configured");
     }
 }

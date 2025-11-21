@@ -26,6 +26,7 @@ bool GameLayer::Initialize()
     {
         // Avoid duplicating setup and note the unexpected call path.
         GAME_WARN("GameLayer::Initialize called while already initialized");
+
         // Avoid re-initializing if the layer is already active.
         return true;
     }
@@ -45,6 +46,7 @@ bool GameLayer::Initialize()
     if (!m_TextureAtlas->Load("Assets/Textures/Atlas.png", glm::ivec2{ 32, 32 }))
     {
         GAME_ERROR("Failed to load texture atlas from Assets/Textures/Atlas.png");
+
         return false;
     }
     GAME_INFO("Texture atlas loaded successfully");
@@ -205,7 +207,7 @@ void GameLayer::Render()
 void GameLayer::OnEvent(const Engine::Event& event)
 {
     // Future event handling can react to inputs; currently this layer logs handled events when needed.
-    (void)event;
+    GAME_TRACE("GameLayer received event type {}", static_cast<int>(event.GetEventType()));
 }
 
 void GameLayer::Shutdown()

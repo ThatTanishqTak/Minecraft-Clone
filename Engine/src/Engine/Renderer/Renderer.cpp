@@ -19,11 +19,14 @@ namespace Engine
 
     bool Renderer::Initialize()
     {
+        ENGINE_INFO("Renderer initialization starting");
+
         // Build shader program from external sources so they are reusable across meshes.
         s_DefaultShader = std::make_shared<Shader>(LoadShaderSource("Basic.vert"), LoadShaderSource("Basic.frag"));
         if (s_DefaultShader == nullptr || !s_DefaultShader->IsValid())
         {
             ENGINE_ERROR("Failed to create default shader");
+
             return false;
         }
 
@@ -52,6 +55,8 @@ namespace Engine
 
     void Renderer::Shutdown()
     {
+        ENGINE_INFO("Renderer shutdown starting");
+
         s_DefaultShader.reset();
         s_DefaultTexture.reset();
 
@@ -66,6 +71,8 @@ namespace Engine
 
     void Renderer::BeginFrame()
     {
+        ENGINE_TRACE("Renderer::BeginFrame - preparing render state");
+
         // Sync projection with the framebuffer to avoid stretching when windows are resized.
         GLint l_Viewport[4] = { 0, 0, 0, 0 };
         glGetIntegerv(GL_VIEWPORT, l_Viewport);
@@ -85,6 +92,7 @@ namespace Engine
     void Renderer::EndFrame()
     {
         // Future post-processing and debug UI could be wired here.
+        ENGINE_TRACE("Renderer::EndFrame - render state finalized");
     }
 
     void Renderer::SubmitMesh(const Mesh& mesh, const glm::mat4& modelMatrix, const Texture2D* texture)
@@ -92,6 +100,7 @@ namespace Engine
         if (s_DefaultShader == nullptr || !s_DefaultShader->IsValid())
         {
             ENGINE_WARN("SubmitMesh skipped because default shader is invalid");
+
             return;
         }
 
@@ -115,12 +124,16 @@ namespace Engine
         mesh.Unbind();
 
         s_DefaultShader->Unbind();
+
+        ENGINE_TRACE("SubmitMesh drew {} indices", mesh.GetIndexCount());
     }
 
     void Renderer::SetCamera(const Camera& camera)
     {
         // Copy camera state from the gameplay layer so per-frame data matches gameplay intent.
         s_Camera = camera;
+
+        ENGINE_TRACE("Renderer camera updated");
     }
 
     bool Renderer::CreatePerFrameBuffer()
@@ -131,13 +144,25 @@ namespace Engine
         glBindBufferBase(GL_UNIFORM_BUFFER, s_PerFrameBindingPoint, s_PerFrameUniformBuffer);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-        return s_PerFrameUniformBuffer != 0;
+        const bool l_WasCreated = s_PerFrameUniformBuffer != 0;
+        if (l_WasCreated)
+        {
+            ENGINE_TRACE("Per-frame uniform buffer created with ID {}", s_PerFrameUniformBuffer);
+        }
+        else
+        {
+            ENGINE_ERROR("Failed to create per-frame uniform buffer");
+        }
+
+        return l_WasCreated;
     }
 
     void Renderer::UpdatePerFrameBuffer()
     {
         if (s_PerFrameUniformBuffer == 0)
         {
+            ENGINE_WARN("UpdatePerFrameBuffer called before buffer creation");
+
             return;
         }
 
@@ -148,6 +173,8 @@ namespace Engine
         glBindBuffer(GL_UNIFORM_BUFFER, s_PerFrameUniformBuffer);
         glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(PerFrameData), &l_Data);
         glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+        ENGINE_TRACE("Per-frame uniform buffer updated");
     }
 
     std::string Renderer::LoadShaderSource(const std::string& filename)
@@ -160,6 +187,7 @@ namespace Engine
         if (!l_FileStream)
         {
             ENGINE_ERROR("Failed to open shader file: {}", l_FilePath.string());
+
             return {};
         }
 

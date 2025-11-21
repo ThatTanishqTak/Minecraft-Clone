@@ -9,6 +9,8 @@ namespace Engine
 {
     bool Window::Initialize()
     {
+        ENGINE_INFO("Window initialization starting");
+
         // Create the window and defer storing it until we know initialization succeeded.
         m_Window = glfwCreateWindow(1920, 1080, "Minecraft-Clone", NULL, NULL);
         if (m_Window == NULL)
@@ -33,6 +35,7 @@ namespace Engine
                 }
 
                 WindowResizeEvent l_Event(width, height);
+                ENGINE_TRACE("Window resized to {}x{}", width, height);
                 l_Window->m_EventCallback(l_Event);
             });
 
@@ -45,6 +48,7 @@ namespace Engine
                 }
 
                 WindowCloseEvent l_Event;
+                ENGINE_TRACE("Window close requested");
                 l_Window->m_EventCallback(l_Event);
             });
 
@@ -60,16 +64,19 @@ namespace Engine
                 if (action == GLFW_PRESS)
                 {
                     KeyPressedEvent l_Event(key, 0);
+                    ENGINE_TRACE("Key {} pressed", key);
                     l_Window->m_EventCallback(l_Event);
                 }
                 else if (action == GLFW_RELEASE)
                 {
                     KeyReleasedEvent l_Event(key);
+                    ENGINE_TRACE("Key {} released", key);
                     l_Window->m_EventCallback(l_Event);
                 }
                 else if (action == GLFW_REPEAT)
                 {
                     KeyPressedEvent l_Event(key, 1);
+                    ENGINE_TRACE("Key {} repeated", key);
                     l_Window->m_EventCallback(l_Event);
                 }
             });
@@ -83,6 +90,7 @@ namespace Engine
                 }
 
                 MouseMovedEvent l_Event(static_cast<float>(xPosition), static_cast<float>(yPosition));
+                ENGINE_TRACE("Mouse moved to ({}, {})", xPosition, yPosition);
                 l_Window->m_EventCallback(l_Event);
             });
 
@@ -97,11 +105,13 @@ namespace Engine
                 if (action == GLFW_PRESS)
                 {
                     MouseButtonPressedEvent l_Event(button);
+                    ENGINE_TRACE("Mouse button {} pressed", button);
                     l_Window->m_EventCallback(l_Event);
                 }
                 else if (action == GLFW_RELEASE)
                 {
                     MouseButtonReleasedEvent l_Event(button);
+                    ENGINE_TRACE("Mouse button {} released", button);
                     l_Window->m_EventCallback(l_Event);
                 }
             });
@@ -115,6 +125,7 @@ namespace Engine
                 }
 
                 MouseScrolledEvent l_Event(static_cast<float>(xOffset), static_cast<float>(yOffset));
+                ENGINE_TRACE("Mouse scrolled by ({}, {})", xOffset, yOffset);
                 l_Window->m_EventCallback(l_Event);
             });
 
@@ -133,6 +144,8 @@ namespace Engine
         }
 
         ENGINE_TRACE("GLAD initialized");
+
+        ENGINE_INFO("Window initialization completed");
 
         return true;
     }

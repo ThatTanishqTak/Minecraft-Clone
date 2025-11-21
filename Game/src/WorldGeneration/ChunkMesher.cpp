@@ -1,14 +1,18 @@
 #include "ChunkMesher.h"
 
+#include "Engine/Core/Log.h"
+
 #include <array>
 
 ChunkMesher::ChunkMesher(const TextureAtlas& atlas) : m_Atlas(atlas)
 {
-
+    GAME_TRACE("ChunkMesher constructed");
 }
 
 MeshedChunk ChunkMesher::Mesh(const Chunk& chunk) const
 {
+    GAME_TRACE("Meshing chunk at position ({}, {}, {})", chunk.GetPosition().x, chunk.GetPosition().y, chunk.GetPosition().z);
+
     MeshedChunk l_Output{};
 
     // Build meshes for each face direction independently using greedy quads.
@@ -19,11 +23,15 @@ MeshedChunk ChunkMesher::Mesh(const Chunk& chunk) const
     BuildFaceQuads(chunk, BlockFace::North, l_Output);
     BuildFaceQuads(chunk, BlockFace::South, l_Output);
 
+    GAME_TRACE("Meshing complete with {} vertices and {} indices", l_Output.m_Vertices.size(), l_Output.m_Indices.size());
+
     return l_Output;
 }
 
 void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk& outMesh) const
 {
+    GAME_TRACE("Building quads for face {}", static_cast<int>(face));
+
     // Greedy meshing across a plane for the specified face.
     const int l_Size = Chunk::CHUNK_SIZE;
 
@@ -194,4 +202,6 @@ void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection,
     };
 
     outMesh.m_Indices.insert(outMesh.m_Indices.end(), l_QuadIndices.begin(), l_QuadIndices.end());
+
+    GAME_TRACE("Emitted quad at origin ({}, {}, {}) with normal ({}, {}, {})", origin.x, origin.y, origin.z, normal.x, normal.y, normal.z);
 }

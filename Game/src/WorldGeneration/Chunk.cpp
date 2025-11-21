@@ -1,5 +1,7 @@
 #include "Chunk.h"
 
+#include "Engine/Core/Log.h"
+
 #include <algorithm>
 
 Chunk::Chunk(const glm::ivec3& position) : m_Position(position)
@@ -7,12 +9,16 @@ Chunk::Chunk(const glm::ivec3& position) : m_Position(position)
     // Default to air blocks to keep visibility calculations simple until blocks are placed.
     m_BlockIds.fill(BlockId::Air);
     m_VisibilityMasks.fill(0);
+
+    GAME_TRACE("Chunk created at position ({}, {}, {})", m_Position.x, m_Position.y, m_Position.z);
 }
 
 void Chunk::SetBlock(int x, int y, int z, BlockId blockID)
 {
     const size_t l_Index = ToIndex(x, y, z);
     m_BlockIds[l_Index] = blockID;
+
+    GAME_TRACE("Block set at ({}, {}, {}) to id {}", x, y, z, static_cast<int>(blockID));
 }
 
 BlockId Chunk::GetBlock(int x, int y, int z) const
@@ -23,6 +29,8 @@ BlockId Chunk::GetBlock(int x, int y, int z) const
 
 void Chunk::RebuildVisibility()
 {
+    GAME_TRACE("Rebuilding visibility masks for chunk at ({}, {}, {})", m_Position.x, m_Position.y, m_Position.z);
+
     // Determine which faces are exposed by checking for air/out-of-bounds neighbors.
     for (int l_Z = 0; l_Z < CHUNK_SIZE; ++l_Z)
     {
@@ -66,6 +74,8 @@ void Chunk::RebuildVisibility()
             }
         }
     }
+
+    GAME_TRACE("Visibility masks rebuilt for chunk at ({}, {}, {})", m_Position.x, m_Position.y, m_Position.z);
 }
 
 bool Chunk::IsFaceVisible(int x, int y, int z, BlockFace face) const

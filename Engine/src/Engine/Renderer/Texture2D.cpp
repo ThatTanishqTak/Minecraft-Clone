@@ -26,26 +26,33 @@ namespace Engine
         l_Channels = 4; // Force RGBA from stb_image.
         InitializeTexture(l_Width, l_Height, l_Channels, l_Data);
         stbi_image_free(l_Data);
+
+
+        ENGINE_INFO("Texture loaded from {} ({}x{}, {} channels)", filePath, l_Width, l_Height, l_Channels);
     }
 
     Texture2D::Texture2D(int width, int height, int channels, const unsigned char* data)
     {
         InitializeTexture(width, height, channels, data);
+
+        ENGINE_TRACE("Texture created from raw data ({}x{}, {} channels)", width, height, channels);
     }
 
     Texture2D::~Texture2D()
     {
-        if (m_TextureId != 0)
+        if (m_TextureID != 0)
         {
-            glDeleteTextures(1, &m_TextureId);
-            m_TextureId = 0;
+            glDeleteTextures(1, &m_TextureID);
+            m_TextureID = 0;
         }
+
+        ENGINE_TRACE("Texture destroyed");
     }
 
     void Texture2D::Bind(unsigned int slot) const
     {
         glActiveTexture(GL_TEXTURE0 + slot);
-        glBindTexture(GL_TEXTURE_2D, m_TextureId);
+        glBindTexture(GL_TEXTURE_2D, m_TextureID);
     }
 
     void Texture2D::InitializeTexture(int width, int height, int channels, const unsigned char* data)
@@ -54,8 +61,8 @@ namespace Engine
         m_Height = height;
         m_Channels = channels;
 
-        glGenTextures(1, &m_TextureId);
-        glBindTexture(GL_TEXTURE_2D, m_TextureId);
+        glGenTextures(1, &m_TextureID);
+        glBindTexture(GL_TEXTURE_2D, m_TextureID);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -68,6 +75,15 @@ namespace Engine
 
         glBindTexture(GL_TEXTURE_2D, 0);
 
-        m_IsValid = m_TextureId != 0;
+        m_IsValid = m_TextureID != 0;
+
+        if (m_IsValid)
+        {
+            ENGINE_TRACE("Texture {} initialized successfully", m_TextureID);
+        }
+        else
+        {
+            ENGINE_ERROR("Texture initialization failed");
+        }
     }
 }
