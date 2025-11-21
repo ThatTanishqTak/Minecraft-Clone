@@ -180,10 +180,10 @@ namespace Engine
             // Process OS-level events first so input informs the next Update call.
             glfwPollEvents();
 
-            Renderer::BeginFrame();
-
             // Update the game state before rendering to ensure visuals reflect the latest logic.
             m_GameLayer->Update();
+
+            Renderer::BeginFrame();
 
             // Render the current frame from the game layer.
             m_GameLayer->Render();

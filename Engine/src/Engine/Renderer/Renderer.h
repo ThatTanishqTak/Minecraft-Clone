@@ -24,6 +24,7 @@ namespace Engine
         static void BeginFrame();
         static void EndFrame();
         static void SubmitMesh(const Mesh& mesh, const glm::mat4& modelMatrix);
+        static void SetCamera(const Camera& camera);
 
         static Camera& GetCamera() { return s_Camera; }
 

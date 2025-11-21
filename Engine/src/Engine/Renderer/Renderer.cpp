@@ -88,6 +88,12 @@ namespace Engine
         s_DefaultShader->Unbind();
     }
 
+    void Renderer::SetCamera(const Camera& camera)
+    {
+        // Copy camera state from the gameplay layer so per-frame data matches gameplay intent.
+        s_Camera = camera;
+    }
+
     bool Renderer::CreatePerFrameBuffer()
     {
         glGenBuffers(1, &s_PerFrameUniformBuffer);
