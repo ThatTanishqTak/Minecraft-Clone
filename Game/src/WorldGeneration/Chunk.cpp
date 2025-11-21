@@ -9,10 +9,10 @@ Chunk::Chunk(const glm::ivec3& position) : m_Position(position)
     m_VisibilityMasks.fill(0);
 }
 
-void Chunk::SetBlock(int x, int y, int z, BlockId blockId)
+void Chunk::SetBlock(int x, int y, int z, BlockId blockID)
 {
     const size_t l_Index = ToIndex(x, y, z);
-    m_BlockIds[l_Index] = blockId;
+    m_BlockIds[l_Index] = blockID;
 }
 
 BlockId Chunk::GetBlock(int x, int y, int z) const
@@ -40,18 +40,18 @@ void Chunk::RebuildVisibility()
 
                 uint8_t l_Mask = 0;
 
-                auto l_CheckFace = [&](BlockFace l_Face, int l_OffsetX, int l_OffsetY, int l_OffsetZ)
+                auto l_CheckFace = [&](BlockFace face, int xOffset, int yOffset, int zOffset)
                     {
-                        const int l_NeighborX = l_X + l_OffsetX;
-                        const int l_NeighborY = l_Y + l_OffsetY;
-                        const int l_NeighborZ = l_Z + l_OffsetZ;
+                        const int l_NeighborX = l_X + xOffset;
+                        const int l_NeighborY = l_Y + yOffset;
+                        const int l_NeighborZ = l_Z + zOffset;
 
                         const bool l_HasNeighbor = IsInsideChunk(l_NeighborX, l_NeighborY, l_NeighborZ);
                         const BlockId l_NeighborBlock = l_HasNeighbor ? GetBlock(l_NeighborX, l_NeighborY, l_NeighborZ) : BlockId::Air;
 
                         if (l_NeighborBlock == BlockId::Air)
                         {
-                            l_Mask |= (1u << static_cast<uint8_t>(l_Face));
+                            l_Mask |= (1u << static_cast<uint8_t>(face));
                         }
                     };
 

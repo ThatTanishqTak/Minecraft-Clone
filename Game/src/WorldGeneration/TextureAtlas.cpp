@@ -1,6 +1,6 @@
 #include "TextureAtlas.h"
 
-#include <iostream>
+#include "Engine/Core/Log.h"
 
 bool TextureAtlas::Load(const std::string& filePath, const glm::ivec2& tileSize)
 {
@@ -8,10 +8,12 @@ bool TextureAtlas::Load(const std::string& filePath, const glm::ivec2& tileSize)
     m_Texture = std::make_unique<Engine::Texture2D>(filePath);
     if (m_Texture == nullptr || !m_Texture->IsValid())
     {
-        std::cout << "Failed to load texture atlas: " << filePath << std::endl;
+        GAME_ERROR("Failed to load texture atlas: {}", filePath);
 
         return false;
     }
+
+    GAME_INFO("Texture atlas loaded: {} (tile size: {}x{})", filePath, tileSize.x, tileSize.y);
 
     m_TileSize = tileSize;
     m_TextureSize = glm::ivec2{ m_Texture->GetWidth(), m_Texture->GetHeight() };
@@ -19,7 +21,7 @@ bool TextureAtlas::Load(const std::string& filePath, const glm::ivec2& tileSize)
     return true;
 }
 
-void TextureAtlas::RegisterBlockFace(BlockId blockId, BlockFace face, const glm::ivec2& tileIndex)
+void TextureAtlas::RegisterBlockFace(BlockId blockID, BlockFace face, const glm::ivec2& tileIndex)
 {
     // Precompute UVs for each face to avoid per-vertex texture math during meshing.
     const glm::vec2 l_Texel = 1.0f / glm::vec2(m_TextureSize);
@@ -32,12 +34,12 @@ void TextureAtlas::RegisterBlockFace(BlockId blockId, BlockFace face, const glm:
     l_FaceUV.m_UV11 = l_UVMax;
     l_FaceUV.m_UV01 = glm::vec2{ l_UVMin.x, l_UVMax.y };
 
-    m_BlockFaceUVs[blockId][static_cast<size_t>(face)] = l_FaceUV;
+    m_BlockFaceUVs[blockID][static_cast<size_t>(face)] = l_FaceUV;
 }
 
-BlockFaceUV TextureAtlas::GetFaceUVs(BlockId blockId, BlockFace face) const
+BlockFaceUV TextureAtlas::GetFaceUVs(BlockId blockID, BlockFace face) const
 {
-    const auto l_FaceIt = m_BlockFaceUVs.find(blockId);
+    const auto l_FaceIt = m_BlockFaceUVs.find(blockID);
     if (l_FaceIt != m_BlockFaceUVs.end())
     {
         return l_FaceIt->second[static_cast<size_t>(face)];

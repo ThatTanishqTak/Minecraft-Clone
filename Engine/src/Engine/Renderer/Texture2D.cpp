@@ -4,7 +4,7 @@
 #include <stb_image.h>
 
 #include <array>
-#include <iostream>
+#include "Engine/Core/Log.h"
 
 namespace Engine
 {
@@ -17,7 +17,7 @@ namespace Engine
         stbi_uc* l_Data = stbi_load(filePath.c_str(), &l_Width, &l_Height, &l_Channels, STBI_rgb_alpha);
         if (l_Data == nullptr)
         {
-            std::cout << "Failed to load texture: " << filePath << std::endl;
+            ENGINE_ERROR("Failed to load texture: {}", filePath);
             m_IsValid = false;
 
             return;

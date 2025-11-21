@@ -29,68 +29,68 @@ void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk
 
     std::vector<BlockId> l_Mask(static_cast<size_t>(l_Size * l_Size), BlockId::Air);
 
-    for (int l_W = 0; l_W < l_Size; ++l_W)
+    for (int w = 0; w < l_Size; ++w)
     {
         // Fill mask for current slice.
-        for (int l_V = 0; l_V < l_Size; ++l_V)
+        for (int v = 0; v < l_Size; ++v)
         {
-            for (int l_U = 0; l_U < l_Size; ++l_U)
+            for (int u = 0; u < l_Size; ++u)
             {
-                int l_X = 0;
-                int l_Y = 0;
-                int l_Z = 0;
+                int x = 0;
+                int y = 0;
+                int z = 0;
 
                 if (face == BlockFace::East || face == BlockFace::West)
                 {
-                    l_X = (face == BlockFace::East) ? l_W : l_Size - 1 - l_W;
-                    l_Y = l_U;
-                    l_Z = l_V;
+                    x = (face == BlockFace::East) ? w : l_Size - 1 - w;
+                    y = u;
+                    z = v;
                 }
                 else if (face == BlockFace::Top || face == BlockFace::Bottom)
                 {
-                    l_X = l_U;
-                    l_Y = (face == BlockFace::Top) ? l_Size - 1 - l_W : l_W;
-                    l_Z = l_V;
+                    x = u;
+                    y = (face == BlockFace::Top) ? l_Size - 1 - w : w;
+                    z = v;
                 }
                 else // North/South
                 {
-                    l_X = l_U;
-                    l_Y = l_V;
-                    l_Z = (face == BlockFace::North) ? l_W : l_Size - 1 - l_W;
+                    x = u;
+                    y = v;
+                    z = (face == BlockFace::North) ? w : l_Size - 1 - w;
                 }
 
-                const BlockId l_Block = chunk.GetBlock(l_X, l_Y, l_Z);
-                const bool l_IsVisible = l_Block != BlockId::Air && chunk.IsFaceVisible(l_X, l_Y, l_Z, face);
-                l_Mask[static_cast<size_t>(l_V * l_Size + l_U)] = l_IsVisible ? l_Block : BlockId::Air;
+                const BlockId l_Block = chunk.GetBlock(x, y, z);
+                const bool l_IsVisible = l_Block != BlockId::Air && chunk.IsFaceVisible(x, y, z, face);
+                l_Mask[static_cast<size_t>(v * l_Size + u)] = l_IsVisible ? l_Block : BlockId::Air;
             }
         }
 
-        int l_V = 0;
-        while (l_V < l_Size)
+        int v = 0;
+        while (v < l_Size)
         {
-            int l_U = 0;
-            while (l_U < l_Size)
+            int u = 0;
+            while (u < l_Size)
             {
-                const BlockId l_Current = l_Mask[static_cast<size_t>(l_V * l_Size + l_U)];
+                const BlockId l_Current = l_Mask[static_cast<size_t>(v * l_Size + u)];
                 if (l_Current == BlockId::Air)
                 {
-                    ++l_U;
+                    ++u;
                     continue;
                 }
 
                 int l_Width = 1;
-                while (l_U + l_Width < l_Size && l_Mask[static_cast<size_t>(l_V * l_Size + l_U + l_Width)] == l_Current)
+                while (u + l_Width < l_Size && l_Mask[static_cast<size_t>(v * l_Size + u + l_Width)] == l_Current)
                 {
                     ++l_Width;
                 }
 
                 int l_Height = 1;
                 bool l_Done = false;
-                while (l_V + l_Height < l_Size && !l_Done)
+                while (v + l_Height < l_Size && !l_Done)
                 {
                     for (int l_Test = 0; l_Test < l_Width; ++l_Test)
                     {
-                        if (l_Mask[static_cast<size_t>((l_V + l_Height) * l_Size + l_U + l_Test)] != l_Current)
+                        if (l_Mask[static_cast<size_t>((v + l_Height) * l_Size + u + l_Test)] != l_Current)
                         {
                             l_Done = true;
                             break;
@@ -107,81 +107,82 @@ void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk
                 {
                     for (int l_CoverU = 0; l_CoverU < l_Width; ++l_CoverU)
                     {
-                        l_Mask[static_cast<size_t>((l_V + l_CoverV) * l_Size + l_U + l_CoverU)] = BlockId::Air;
+                        l_Mask[static_cast<size_t>((v + l_CoverV) * l_Size + u + l_CoverU)] = BlockId::Air;
                     }
                 }
 
                 glm::vec3 l_Origin{ 0.0f };
-                glm::vec3 l_UDir{ 0.0f };
-                glm::vec3 l_VDir{ 0.0f };
+                glm::vec3 l_UDirection{ 0.0f };
+                glm::vec3 l_VDirection{ 0.0f };
                 glm::vec3 l_Normal{ 0.0f };
 
                 if (face == BlockFace::East)
                 {
-                    l_Origin = glm::vec3{ static_cast<float>(l_W + 1), static_cast<float>(l_U), static_cast<float>(l_V) };
-                    l_UDir = glm::vec3{ 0.0f, static_cast<float>(l_Width), 0.0f };
-                    l_VDir = glm::vec3{ 0.0f, 0.0f, static_cast<float>(l_Height) };
+                    l_Origin = glm::vec3{ static_cast<float>(w + 1), static_cast<float>(u), static_cast<float>(v) };
+                    l_UDirection = glm::vec3{ 0.0f, static_cast<float>(l_Width), 0.0f };
+                    l_VDirection = glm::vec3{ 0.0f, 0.0f, static_cast<float>(l_Height) };
                     l_Normal = glm::vec3{ 1.0f, 0.0f, 0.0f };
                 }
                 else if (face == BlockFace::West)
                 {
-                    l_Origin = glm::vec3{ static_cast<float>(l_Size - l_W - 1), static_cast<float>(l_U), static_cast<float>(l_V + l_Height) };
-                    l_UDir = glm::vec3{ 0.0f, static_cast<float>(l_Width), 0.0f };
-                    l_VDir = glm::vec3{ 0.0f, 0.0f, -static_cast<float>(l_Height) };
+                    l_Origin = glm::vec3{ static_cast<float>(l_Size - w - 1), static_cast<float>(u), static_cast<float>(v + l_Height) };
+                    l_UDirection = glm::vec3{ 0.0f, static_cast<float>(l_Width), 0.0f };
+                    l_VDirection = glm::vec3{ 0.0f, 0.0f, -static_cast<float>(l_Height) };
                     l_Normal = glm::vec3{ -1.0f, 0.0f, 0.0f };
                 }
                 else if (face == BlockFace::Top)
                 {
-                    l_Origin = glm::vec3{ static_cast<float>(l_U), static_cast<float>(l_Size - l_W), static_cast<float>(l_V) };
-                    l_UDir = glm::vec3{ static_cast<float>(l_Width), 0.0f, 0.0f };
-                    l_VDir = glm::vec3{ 0.0f, 0.0f, static_cast<float>(l_Height) };
+                    l_Origin = glm::vec3{ static_cast<float>(u), static_cast<float>(l_Size - w), static_cast<float>(v) };
+                    l_UDirection = glm::vec3{ static_cast<float>(l_Width), 0.0f, 0.0f };
+                    l_VDirection = glm::vec3{ 0.0f, 0.0f, static_cast<float>(l_Height) };
                     l_Normal = glm::vec3{ 0.0f, 1.0f, 0.0f };
                 }
                 else if (face == BlockFace::Bottom)
                 {
-                    l_Origin = glm::vec3{ static_cast<float>(l_U), static_cast<float>(l_W), static_cast<float>(l_V + l_Height) };
-                    l_UDir = glm::vec3{ static_cast<float>(l_Width), 0.0f, 0.0f };
-                    l_VDir = glm::vec3{ 0.0f, 0.0f, -static_cast<float>(l_Height) };
+                    l_Origin = glm::vec3{ static_cast<float>(u), static_cast<float>(w), static_cast<float>(v + l_Height) };
+                    l_UDirection = glm::vec3{ static_cast<float>(l_Width), 0.0f, 0.0f };
+                    l_VDirection = glm::vec3{ 0.0f, 0.0f, -static_cast<float>(l_Height) };
                     l_Normal = glm::vec3{ 0.0f, -1.0f, 0.0f };
                 }
                 else if (face == BlockFace::North)
                 {
-                    l_Origin = glm::vec3{ static_cast<float>(l_U), static_cast<float>(l_V), static_cast<float>(l_W + 1) };
-                    l_UDir = glm::vec3{ static_cast<float>(l_Width), 0.0f, 0.0f };
-                    l_VDir = glm::vec3{ 0.0f, static_cast<float>(l_Height), 0.0f };
+                    l_Origin = glm::vec3{ static_cast<float>(u), static_cast<float>(v), static_cast<float>(w + 1) };
+                    l_UDirection = glm::vec3{ static_cast<float>(l_Width), 0.0f, 0.0f };
+                    l_VDirection = glm::vec3{ 0.0f, static_cast<float>(l_Height), 0.0f };
                     l_Normal = glm::vec3{ 0.0f, 0.0f, 1.0f };
                 }
                 else // South
                 {
-                    l_Origin = glm::vec3{ static_cast<float>(l_U), static_cast<float>(l_V + l_Height), static_cast<float>(l_Size - l_W - 1) };
-                    l_UDir = glm::vec3{ static_cast<float>(l_Width), 0.0f, 0.0f };
-                    l_VDir = glm::vec3{ 0.0f, -static_cast<float>(l_Height), 0.0f };
+                    l_Origin = glm::vec3{ static_cast<float>(u), static_cast<float>(v + l_Height), static_cast<float>(l_Size - w - 1) };
+                    l_UDirection = glm::vec3{ static_cast<float>(l_Width), 0.0f, 0.0f };
+                    l_VDirection = glm::vec3{ 0.0f, -static_cast<float>(l_Height), 0.0f };
                     l_Normal = glm::vec3{ 0.0f, 0.0f, -1.0f };
                 }
 
                 const BlockFaceUV l_UVs = m_Atlas.GetFaceUVs(l_Current, face);
-                EmitQuad(l_Origin, l_UDir, l_VDir, l_Normal, l_UVs, outMesh);
+                EmitQuad(l_Origin, l_UDirection, l_VDirection, l_Normal, l_UVs, outMesh);
 
-                l_U += l_Width;
+                u += l_Width;
             }
-            ++l_V;
+            ++v;
         }
     }
 }
 
-void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDir, const glm::vec3& vDir, const glm::vec3& normal, const BlockFaceUV& uvs, MeshedChunk& outMesh) const
+void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection, const glm::vec3& vDirection, const glm::vec3& normal, 
+    const BlockFaceUV& UVs, MeshedChunk& outMesh) const
 {
     // Generate four vertices forming a quad using supplied orientation vectors.
     const glm::vec3 l_P0 = origin;
-    const glm::vec3 l_P1 = origin + vDir;
-    const glm::vec3 l_P2 = origin + uDir + vDir;
-    const glm::vec3 l_P3 = origin + uDir;
+    const glm::vec3 l_P1 = origin + vDirection;
+    const glm::vec3 l_P2 = origin + uDirection + vDirection;
+    const glm::vec3 l_P3 = origin + uDirection;
 
     const std::array<Engine::Mesh::Vertex, 4> l_Vertices = {
-        Engine::Mesh::Vertex{ l_P0, normal, uvs.m_UV00 },
-        Engine::Mesh::Vertex{ l_P1, normal, uvs.m_UV01 },
-        Engine::Mesh::Vertex{ l_P2, normal, uvs.m_UV11 },
-        Engine::Mesh::Vertex{ l_P3, normal, uvs.m_UV10 },
+        Engine::Mesh::Vertex{ l_P0, normal, UVs.m_UV00 },
+        Engine::Mesh::Vertex{ l_P1, normal, UVs.m_UV01 },
+        Engine::Mesh::Vertex{ l_P2, normal, UVs.m_UV11 },
+        Engine::Mesh::Vertex{ l_P3, normal, UVs.m_UV10 },
     };
 
     const uint32_t l_StartIndex = static_cast<uint32_t>(outMesh.m_Vertices.size());

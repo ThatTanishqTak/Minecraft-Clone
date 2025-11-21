@@ -18,8 +18,8 @@ public:
 
     bool Load(const std::string& filePath, const glm::ivec2& tileSize);
 
-    void RegisterBlockFace(BlockId blockId, BlockFace face, const glm::ivec2& tileIndex);
-    BlockFaceUV GetFaceUVs(BlockId blockId, BlockFace face) const;
+    void RegisterBlockFace(BlockId blockID, BlockFace face, const glm::ivec2& tileIndex);
+    BlockFaceUV GetFaceUVs(BlockId blockID, BlockFace face) const;
 
     const Engine::Texture2D* GetTexture() const { return m_Texture.get(); }
     glm::ivec2 GetTileSize() const { return m_TileSize; }

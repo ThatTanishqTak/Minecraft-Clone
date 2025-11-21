@@ -1,8 +1,9 @@
 #include "Engine/Renderer/Renderer.h"
 
+#include "Engine/Core/Log.h"
+
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <sstream>
 #include <string>
 #include <array>
@@ -22,15 +23,19 @@ namespace Engine
         s_DefaultShader = std::make_shared<Shader>(LoadShaderSource("Basic.vert"), LoadShaderSource("Basic.frag"));
         if (s_DefaultShader == nullptr || !s_DefaultShader->IsValid())
         {
-            std::cout << "Failed to create default shader" << std::endl;
+            ENGINE_ERROR("Failed to create default shader");
             return false;
         }
+
+        ENGINE_INFO("Default shader compiled and linked successfully");
 
         s_DefaultShader->BindUniformBlock("PerFrame", s_PerFrameBindingPoint);
 
         // Prime a simple white texture in case renderables do not supply their own.
         const std::array<unsigned char, 4> l_WhitePixel{ 255, 255, 255, 255 };
         s_DefaultTexture = std::make_shared<Texture2D>(1, 1, 4, l_WhitePixel.data());
+
+        ENGINE_TRACE("Default white texture created for fallback rendering");
 
         if (!CreatePerFrameBuffer())
         {
@@ -39,6 +44,8 @@ namespace Engine
 
         // Prime the camera with a default projection to avoid rendering artifacts.
         s_Camera.SetPerspective(glm::radians(45.0f), 0.1f, 1000.0f);
+
+        ENGINE_INFO("Renderer initialized and ready");
 
         return true;
     }
@@ -53,6 +60,8 @@ namespace Engine
             glDeleteBuffers(1, &s_PerFrameUniformBuffer);
             s_PerFrameUniformBuffer = 0;
         }
+
+        ENGINE_INFO("Renderer shutdown complete");
     }
 
     void Renderer::BeginFrame()
@@ -82,6 +91,7 @@ namespace Engine
     {
         if (s_DefaultShader == nullptr || !s_DefaultShader->IsValid())
         {
+            ENGINE_WARN("SubmitMesh skipped because default shader is invalid");
             return;
         }
 
@@ -149,12 +159,15 @@ namespace Engine
         std::ifstream l_FileStream(l_FilePath, std::ios::in | std::ios::binary);
         if (!l_FileStream)
         {
-            std::cout << "Failed to open shader file: " << l_FilePath << std::endl;
+            ENGINE_ERROR("Failed to open shader file: {}", l_FilePath.string());
             return {};
         }
 
+        ENGINE_TRACE("Loaded shader source from {}", l_FilePath.string());
+
         std::stringstream l_Buffer;
         l_Buffer << l_FileStream.rdbuf();
+
         return l_Buffer.str();
     }
 }

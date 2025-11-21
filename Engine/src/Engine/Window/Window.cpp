@@ -74,7 +74,7 @@ namespace Engine
                 }
             });
 
-        glfwSetCursorPosCallback(m_Window, [](GLFWwindow* windowHandle, double xPos, double yPos)
+        glfwSetCursorPosCallback(m_Window, [](GLFWwindow* windowHandle, double xPosition, double yPosition)
             {
                 Window* l_Window = static_cast<Window*>(glfwGetWindowUserPointer(windowHandle));
                 if (l_Window == nullptr || l_Window->m_EventCallback == nullptr)
@@ -82,7 +82,7 @@ namespace Engine
                     return;
                 }
 
-                MouseMovedEvent l_Event(static_cast<float>(xPos), static_cast<float>(yPos));
+                MouseMovedEvent l_Event(static_cast<float>(xPosition), static_cast<float>(yPosition));
                 l_Window->m_EventCallback(l_Event);
             });
 

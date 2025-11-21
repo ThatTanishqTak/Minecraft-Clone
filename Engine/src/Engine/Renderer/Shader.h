@@ -23,14 +23,14 @@ namespace Engine
         void SetInt(const std::string& uniformName, int value) const;
         void BindUniformBlock(const std::string& blockName, GLuint bindingPoint) const;
 
-        GLuint GetProgramId() const { return m_ProgramId; }
+        GLuint GetProgramId() const { return m_ProgramID; }
 
     private:
-        bool CompileShader(GLuint shaderId, const char* shaderSource);
+        bool CompileShader(GLuint shaderID, const char* shaderSource);
         bool LinkProgram(GLuint vertexShader, GLuint fragmentShader);
 
     private:
-        GLuint m_ProgramId = 0;
+        GLuint m_ProgramID = 0;
         bool m_IsValid = false;
     };
 }

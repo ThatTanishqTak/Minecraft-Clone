@@ -2,9 +2,9 @@
 
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 
 #include "Engine/Events/Events.h"
+#include "Engine/Core/Log.h"
 #include "Engine/Input/Input.h"
 #include "Engine/Renderer/Renderer.h"
 
@@ -14,9 +14,9 @@
 namespace
 {
     // Clamp helper keeps the camera pitch within a safe range to avoid gimbal lock.
-    float Clamp(float l_Value, float l_Min, float l_Max)
+    float Clamp(float value, float minimum, float maximum)
     {
-        return std::max(l_Min, std::min(l_Value, l_Max));
+        return std::max(minimum, std::min(value, maximum));
     }
 }
 
@@ -24,9 +24,13 @@ bool GameLayer::Initialize()
 {
     if (m_IsInitialized)
     {
+        // Avoid duplicating setup and note the unexpected call path.
+        GAME_WARN("GameLayer::Initialize called while already initialized");
         // Avoid re-initializing if the layer is already active.
         return true;
     }
+
+    GAME_INFO("GameLayer initialization starting");
 
     // Prime camera state so view/projection matrices are valid before the first frame.
     m_Camera.SetPerspective(glm::radians(m_CameraFieldOfViewDegrees), 0.1f, 1000.0f);
@@ -34,14 +38,16 @@ bool GameLayer::Initialize()
     m_Camera.SetLookAt(m_CameraPosition + glm::vec3{ 0.0f, 0.0f, -1.0f });
     m_Camera.SetUp(glm::vec3{ 0.0f, 1.0f, 0.0f });
     Engine::Renderer::SetCamera(m_Camera);
+    GAME_TRACE("Camera primed for rendering with FOV {} degrees", m_CameraFieldOfViewDegrees);
 
     // Load the block texture atlas and build chunk rendering helpers.
     m_TextureAtlas = std::make_unique<TextureAtlas>();
     if (!m_TextureAtlas->Load("Assets/Textures/Atlas.png", glm::ivec2{ 32, 32 }))
     {
-        std::cout << "Failed to load texture atlas" << std::endl;
+        GAME_ERROR("Failed to load texture atlas from Assets/Textures/Atlas.png");
         return false;
     }
+    GAME_INFO("Texture atlas loaded successfully");
 
     // Map block faces to atlas tiles. The sample atlas is a 2x2 grid of solid colors.
     m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::Top, { 0, 0 });
@@ -68,6 +74,7 @@ bool GameLayer::Initialize()
     m_Chunk = std::make_unique<Chunk>(glm::ivec3{ 0 });
     m_ChunkMesher = std::make_unique<ChunkMesher>(*m_TextureAtlas);
     m_ChunkRenderer = std::make_unique<ChunkRenderer>();
+    GAME_TRACE("Chunk systems created and ready");
 
     GenerateTestChunk();
     RefreshChunkMesh();
@@ -75,10 +82,13 @@ bool GameLayer::Initialize()
     // Bind example gameplay actions to specific inputs so Update() can consume them.
     Engine::Input::RegisterActionMapping("MoveForward", { GLFW_KEY_W });
     Engine::Input::RegisterActionMapping("Sprint", { GLFW_KEY_LEFT_SHIFT, GLFW_KEY_W });
+    GAME_TRACE("Input mappings registered for MoveForward and Sprint");
 
     m_LastFrameTimeSeconds = glfwGetTime();
 
     m_IsInitialized = true;
+
+    GAME_INFO("GameLayer initialization completed successfully");
 
     return m_IsInitialized;
 }
@@ -96,9 +106,12 @@ void GameLayer::Update()
     m_DeltaTimeSeconds = static_cast<float>(l_CurrentTimeSeconds - m_LastFrameTimeSeconds);
     m_LastFrameTimeSeconds = l_CurrentTimeSeconds;
 
+    GAME_TRACE("Frame update started with delta time: {} seconds", m_DeltaTimeSeconds);
+
     if (m_IsChunkDirty && m_ChunkMesher != nullptr)
     {
         // Rebuild the GPU mesh if blocks changed.
+        GAME_TRACE("Chunk marked dirty, rebuilding mesh");
         RefreshChunkMesh();
     }
 
@@ -106,19 +119,19 @@ void GameLayer::Update()
     const bool l_WasEscapePressed = Engine::Input::WasKeyPressedThisFrame(GLFW_KEY_ESCAPE);
     if (l_WasEscapePressed)
     {
-        std::cout << "Escape was pressed this frame" << std::endl;
+        GAME_INFO("Escape was pressed this frame");
     }
 
     const bool l_IsSprinting = Engine::Input::IsActionDown("Sprint");
     if (l_IsSprinting)
     {
-        std::cout << "Sprint combo is held" << std::endl;
+        GAME_INFO("Sprint combo is held");
     }
 
     const bool l_MoveTriggered = Engine::Input::WasActionPressedThisFrame("MoveForward");
     if (l_MoveTriggered)
     {
-        std::cout << "MoveForward triggered this frame" << std::endl;
+        GAME_INFO("MoveForward triggered this frame");
     }
 
     // Update camera orientation from mouse movement.
@@ -185,6 +198,7 @@ void GameLayer::Render()
     {
         // Draw the meshed chunk each frame.
         m_ChunkRenderer->Render(glm::mat4{ 1.0f }, m_TextureAtlas->GetTexture());
+        GAME_TRACE("Rendered chunk with current texture atlas");
     }
 }
 
@@ -202,11 +216,15 @@ void GameLayer::Shutdown()
         return;
     }
 
+    GAME_INFO("Shutting down GameLayer and releasing resources");
+
     m_ChunkRenderer.reset();
     m_ChunkMesher.reset();
     m_Chunk.reset();
     m_TextureAtlas.reset();
     m_IsInitialized = false;
+
+    GAME_INFO("GameLayer shutdown complete");
 }
 
 void GameLayer::GenerateTestChunk()
@@ -216,48 +234,57 @@ void GameLayer::GenerateTestChunk()
         return;
     }
 
-    for (int l_Z = 0; l_Z < Chunk::CHUNK_SIZE; ++l_Z)
+    GAME_TRACE("Generating test chunk data");
+
+    for (int z = 0; z < Chunk::CHUNK_SIZE; ++z)
     {
-        for (int l_X = 0; l_X < Chunk::CHUNK_SIZE; ++l_X)
+        for (int x = 0; x < Chunk::CHUNK_SIZE; ++x)
         {
             // Use a light wave to vary terrain height across the chunk.
-            const float l_Sample = std::sin(static_cast<float>(l_X) * 0.3f) + std::cos(static_cast<float>(l_Z) * 0.3f);
+            const float l_Sample = std::sin(static_cast<float>(x) * 0.3f) + std::cos(static_cast<float>(z) * 0.3f);
             const int l_Height = static_cast<int>(4 + l_Sample * 2.0f);
 
-            for (int l_Y = 0; l_Y < Chunk::CHUNK_SIZE; ++l_Y)
+            for (int y = 0; y < Chunk::CHUNK_SIZE; ++y)
             {
                 BlockId l_Block = BlockId::Air;
 
-                if (l_Y < l_Height - 2)
+                if (y < l_Height - 2)
                 {
                     l_Block = BlockId::Stone;
                 }
-                else if (l_Y < l_Height - 1)
+                else if (y < l_Height - 1)
                 {
                     l_Block = BlockId::Dirt;
                 }
-                else if (l_Y == l_Height - 1)
+                else if (y == l_Height - 1)
                 {
                     l_Block = BlockId::Grass;
                 }
 
-                m_Chunk->SetBlock(l_X, l_Y, l_Z, l_Block);
+                m_Chunk->SetBlock(x, y, z, l_Block);
             }
         }
     }
 
     m_Chunk->RebuildVisibility();
     m_IsChunkDirty = true;
+
+    GAME_TRACE("Chunk data generated and marked dirty for meshing");
 }
 
 void GameLayer::RefreshChunkMesh()
 {
     if (m_ChunkMesher == nullptr || m_ChunkRenderer == nullptr || m_Chunk == nullptr)
     {
+        GAME_WARN("RefreshChunkMesh called with missing components");
         return;
     }
 
     const MeshedChunk l_MeshedChunk = m_ChunkMesher->Mesh(*m_Chunk);
+    GAME_TRACE("Meshed chunk produced {} vertices and {} indices", l_MeshedChunk.m_Vertices.size(), l_MeshedChunk.m_Indices.size());
+
     m_ChunkRenderer->UpdateMesh(l_MeshedChunk);
     m_IsChunkDirty = false;
+
+    GAME_INFO("Chunk mesh refreshed and uploaded to renderer");
 }

@@ -1,6 +1,6 @@
 #include "Engine/Renderer/Shader.h"
 
-#include <iostream>
+#include "Engine/Core/Log.h"
 
 namespace Engine
 {
@@ -21,7 +21,7 @@ namespace Engine
             return;
         }
 
-        m_ProgramId = glCreateProgram();
+        m_ProgramID = glCreateProgram();
         m_IsValid = LinkProgram(l_VertexShader, l_FragmentShader);
 
         glDeleteShader(l_VertexShader);
@@ -31,16 +31,16 @@ namespace Engine
     Shader::~Shader()
     {
         // Free the shader program when no longer needed.
-        if (m_ProgramId != 0)
+        if (m_ProgramID != 0)
         {
-            glDeleteProgram(m_ProgramId);
-            m_ProgramId = 0;
+            glDeleteProgram(m_ProgramID);
+            m_ProgramID = 0;
         }
     }
 
     void Shader::Bind() const
     {
-        glUseProgram(m_ProgramId);
+        glUseProgram(m_ProgramID);
     }
 
     void Shader::Unbind() const
@@ -50,22 +50,22 @@ namespace Engine
 
     void Shader::SetMat4(const std::string& uniformName, const glm::mat4& matrix) const
     {
-        const GLint l_Location = glGetUniformLocation(m_ProgramId, uniformName.c_str());
+        const GLint l_Location = glGetUniformLocation(m_ProgramID, uniformName.c_str());
         glUniformMatrix4fv(l_Location, 1, GL_FALSE, &matrix[0][0]);
     }
 
     void Shader::SetInt(const std::string& uniformName, int value) const
     {
-        const GLint l_Location = glGetUniformLocation(m_ProgramId, uniformName.c_str());
+        const GLint l_Location = glGetUniformLocation(m_ProgramID, uniformName.c_str());
         glUniform1i(l_Location, value);
     }
 
     void Shader::BindUniformBlock(const std::string& blockName, GLuint bindingPoint) const
     {
-        const GLuint l_BlockIndex = glGetUniformBlockIndex(m_ProgramId, blockName.c_str());
+        const GLuint l_BlockIndex = glGetUniformBlockIndex(m_ProgramID, blockName.c_str());
         if (l_BlockIndex != GL_INVALID_INDEX)
         {
-            glUniformBlockBinding(m_ProgramId, l_BlockIndex, bindingPoint);
+            glUniformBlockBinding(m_ProgramID, l_BlockIndex, bindingPoint);
         }
     }
 
@@ -84,7 +84,7 @@ namespace Engine
 
             std::string l_Message(static_cast<size_t>(l_LogLength), '\0');
             glGetShaderInfoLog(shaderID, l_LogLength, nullptr, l_Message.data());
-            std::cout << "Shader compile error: " << l_Message << std::endl;
+            ENGINE_ERROR("Shader compile error: {}", l_Message);
 
             return false;
         }
@@ -94,20 +94,20 @@ namespace Engine
 
     bool Shader::LinkProgram(GLuint vertexShader, GLuint fragmentShader)
     {
-        glAttachShader(m_ProgramId, vertexShader);
-        glAttachShader(m_ProgramId, fragmentShader);
-        glLinkProgram(m_ProgramId);
+        glAttachShader(m_ProgramID, vertexShader);
+        glAttachShader(m_ProgramID, fragmentShader);
+        glLinkProgram(m_ProgramID);
 
         GLint l_IsLinked = 0;
-        glGetProgramiv(m_ProgramId, GL_LINK_STATUS, &l_IsLinked);
+        glGetProgramiv(m_ProgramID, GL_LINK_STATUS, &l_IsLinked);
         if (l_IsLinked == GL_FALSE)
         {
             GLint l_LogLength = 0;
-            glGetProgramiv(m_ProgramId, GL_INFO_LOG_LENGTH, &l_LogLength);
+            glGetProgramiv(m_ProgramID, GL_INFO_LOG_LENGTH, &l_LogLength);
 
             std::string l_Message(static_cast<size_t>(l_LogLength), '\0');
-            glGetProgramInfoLog(m_ProgramId, l_LogLength, nullptr, l_Message.data());
-            std::cout << "Program link error: " << l_Message << std::endl;
+            glGetProgramInfoLog(m_ProgramID, l_LogLength, nullptr, l_Message.data());
+            ENGINE_ERROR("Program link error: {}", l_Message);
 
             return false;
         }

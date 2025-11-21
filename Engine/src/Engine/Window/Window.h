@@ -20,7 +20,7 @@ namespace Engine
         GLFWwindow* GetNativeWindow() { return m_Window; }
 
         // Allow callers to supply a sink for translated GLFW events.
-        void SetEventCallback(const std::function<void(const Event&)>& l_EventCallback) { m_EventCallback = l_EventCallback; }
+        void SetEventCallback(const std::function<void(const Event&)>& eventCallback) { m_EventCallback = eventCallback; }
 
     private:
         // Pointer to the GLFW window; initialized to nullptr for safe shutdown handling.

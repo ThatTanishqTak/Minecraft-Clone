@@ -16,7 +16,7 @@ public:
 public:
     explicit Chunk(const glm::ivec3& position = glm::ivec3{ 0 });
 
-    void SetBlock(int x, int y, int z, BlockId blockId);
+    void SetBlock(int x, int y, int z, BlockId blockID);
     BlockId GetBlock(int x, int y, int z) const;
 
     // Precompute which faces are visible so meshing can quickly skip occluded quads.

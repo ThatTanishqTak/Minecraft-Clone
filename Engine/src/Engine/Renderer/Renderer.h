@@ -38,7 +38,7 @@ namespace Engine
 
         static bool CreatePerFrameBuffer();
         static void UpdatePerFrameBuffer();
-        static std::string LoadShaderSource(const std::string& filename);
+        static std::string LoadShaderSource(const std::string& fileName);
 
         static GLuint s_PerFrameUniformBuffer;
         static constexpr GLuint s_PerFrameBindingPoint = 0;

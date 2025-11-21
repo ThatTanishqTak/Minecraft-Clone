@@ -52,9 +52,9 @@ namespace Engine
         }
 
         // Helper to quickly check membership in an event category.
-        bool IsInCategory(EventCategory l_Category) const
+        bool IsInCategory(EventCategory category) const
         {
-            return (GetCategoryFlags() & l_Category) != 0;
+            return (GetCategoryFlags() & category) != 0;
         }
 
     public:
@@ -74,11 +74,11 @@ namespace Engine
         // Dispatches the event to the provided callable if the types match.
         // Returns true if the callable was invoked.
         template<typename T, typename F>
-        bool Dispatch(F&& l_Function)
+        bool Dispatch(F&& function)
         {
             if (m_Event.GetEventType() == T::GetStaticType())
             {
-                m_Event.m_Handled = l_Function(static_cast<T&>(m_Event));
+                m_Event.m_Handled = function(static_cast<T&>(m_Event));
 
                 return true;
             }

@@ -25,7 +25,7 @@ public:
 
 private:
     void BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk& outMesh) const;
-    void EmitQuad(const glm::vec3& origin, const glm::vec3& uDir, const glm::vec3& vDir, const glm::vec3& normal, const BlockFaceUV& uvs, MeshedChunk& outMesh) const;
+    void EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection, const glm::vec3& vDirection, const glm::vec3& normal, const BlockFaceUV& UVs, MeshedChunk& outMesh) const;
 
 private:
     const TextureAtlas& m_Atlas;

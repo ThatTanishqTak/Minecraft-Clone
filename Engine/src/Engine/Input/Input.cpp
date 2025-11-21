@@ -43,13 +43,13 @@ namespace Engine
         // extend the lifecycle without changing call sites.
     }
 
-    void Input::OnEvent(const Event& l_Event)
+    void Input::OnEvent(const Event& event)
     {
-        switch (l_Event.GetEventType())
+        switch (event.GetEventType())
         {
         case EventType::KeyPressed:
         {
-            const KeyPressedEvent& l_KeyEvent = static_cast<const KeyPressedEvent&>(l_Event);
+            const KeyPressedEvent& l_KeyEvent = static_cast<const KeyPressedEvent&>(event);
             const bool l_IsRepeat = l_KeyEvent.GetRepeatCount() > 0;
             s_KeyStates[l_KeyEvent.GetKeyCode()] = true;
 
@@ -62,28 +62,28 @@ namespace Engine
         }
         case EventType::KeyReleased:
         {
-            const KeyReleasedEvent& l_KeyEvent = static_cast<const KeyReleasedEvent&>(l_Event);
+            const KeyReleasedEvent& l_KeyEvent = static_cast<const KeyReleasedEvent&>(event);
             s_KeyStates[l_KeyEvent.GetKeyCode()] = false;
             s_KeysReleasedThisFrame.insert(l_KeyEvent.GetKeyCode());
             break;
         }
         case EventType::MouseButtonPressed:
         {
-            const MouseButtonPressedEvent& l_MouseEvent = static_cast<const MouseButtonPressedEvent&>(l_Event);
+            const MouseButtonPressedEvent& l_MouseEvent = static_cast<const MouseButtonPressedEvent&>(event);
             s_MouseButtonStates[l_MouseEvent.GetMouseButton()] = true;
             s_MouseButtonsPressedThisFrame.insert(l_MouseEvent.GetMouseButton());
             break;
         }
         case EventType::MouseButtonReleased:
         {
-            const MouseButtonReleasedEvent& l_MouseEvent = static_cast<const MouseButtonReleasedEvent&>(l_Event);
+            const MouseButtonReleasedEvent& l_MouseEvent = static_cast<const MouseButtonReleasedEvent&>(event);
             s_MouseButtonStates[l_MouseEvent.GetMouseButton()] = false;
             s_MouseButtonsReleasedThisFrame.insert(l_MouseEvent.GetMouseButton());
             break;
         }
         case EventType::MouseMoved:
         {
-            const MouseMovedEvent& l_MouseEvent = static_cast<const MouseMovedEvent&>(l_Event);
+            const MouseMovedEvent& l_MouseEvent = static_cast<const MouseMovedEvent&>(event);
             if (!s_HasMousePosition)
             {
                 s_MouseX = l_MouseEvent.GetX();
@@ -101,7 +101,7 @@ namespace Engine
         }
         case EventType::MouseScrolled:
         {
-            const MouseScrolledEvent& l_MouseEvent = static_cast<const MouseScrolledEvent&>(l_Event);
+            const MouseScrolledEvent& l_MouseEvent = static_cast<const MouseScrolledEvent&>(event);
             s_ScrollDeltaX += l_MouseEvent.GetXOffset();
             s_ScrollDeltaY += l_MouseEvent.GetYOffset();
             break;
@@ -111,9 +111,9 @@ namespace Engine
         }
     }
 
-    bool Input::IsKeyDown(int l_KeyCode)
+    bool Input::IsKeyDown(int keyCode)
     {
-        const auto l_Found = s_KeyStates.find(l_KeyCode);
+        const auto l_Found = s_KeyStates.find(keyCode);
         if (l_Found == s_KeyStates.end())
         {
             return false;
@@ -122,19 +122,19 @@ namespace Engine
         return l_Found->second;
     }
 
-    bool Input::WasKeyPressedThisFrame(int l_KeyCode)
+    bool Input::WasKeyPressedThisFrame(int keyCode)
     {
-        return s_KeysPressedThisFrame.find(l_KeyCode) != s_KeysPressedThisFrame.end();
+        return s_KeysPressedThisFrame.find(keyCode) != s_KeysPressedThisFrame.end();
     }
 
-    bool Input::WasKeyReleasedThisFrame(int l_KeyCode)
+    bool Input::WasKeyReleasedThisFrame(int keyCode)
     {
-        return s_KeysReleasedThisFrame.find(l_KeyCode) != s_KeysReleasedThisFrame.end();
+        return s_KeysReleasedThisFrame.find(keyCode) != s_KeysReleasedThisFrame.end();
     }
 
-    bool Input::IsMouseButtonDown(int l_Button)
+    bool Input::IsMouseButtonDown(int button)
     {
-        const auto l_Found = s_MouseButtonStates.find(l_Button);
+        const auto l_Found = s_MouseButtonStates.find(button);
         if (l_Found == s_MouseButtonStates.end())
         {
             return false;
@@ -143,14 +143,14 @@ namespace Engine
         return l_Found->second;
     }
 
-    bool Input::WasMouseButtonPressedThisFrame(int l_Button)
+    bool Input::WasMouseButtonPressedThisFrame(int button)
     {
-        return s_MouseButtonsPressedThisFrame.find(l_Button) != s_MouseButtonsPressedThisFrame.end();
+        return s_MouseButtonsPressedThisFrame.find(button) != s_MouseButtonsPressedThisFrame.end();
     }
 
-    bool Input::WasMouseButtonReleasedThisFrame(int l_Button)
+    bool Input::WasMouseButtonReleasedThisFrame(int button)
     {
-        return s_MouseButtonsReleasedThisFrame.find(l_Button) != s_MouseButtonsReleasedThisFrame.end();
+        return s_MouseButtonsReleasedThisFrame.find(button) != s_MouseButtonsReleasedThisFrame.end();
     }
 
     std::pair<float, float> Input::GetMousePosition()
@@ -168,20 +168,20 @@ namespace Engine
         return { s_ScrollDeltaX, s_ScrollDeltaY };
     }
 
-    void Input::RegisterActionMapping(const std::string& l_ActionName, const std::vector<int>& l_KeyCombination)
+    void Input::RegisterActionMapping(const std::string& actionName, const std::vector<int>& keyCombination)
     {
         // Replace any existing mappings with a fresh single-combo mapping for clarity.
-        s_ActionMappings[l_ActionName] = { l_KeyCombination };
+        s_ActionMappings[actionName] = { keyCombination };
     }
 
-    void Input::ClearActionMapping(const std::string& l_ActionName)
+    void Input::ClearActionMapping(const std::string& actionName)
     {
-        s_ActionMappings.erase(l_ActionName);
+        s_ActionMappings.erase(actionName);
     }
 
-    bool Input::IsActionDown(const std::string& l_ActionName)
+    bool Input::IsActionDown(const std::string& actionName)
     {
-        const auto l_Found = s_ActionMappings.find(l_ActionName);
+        const auto l_Found = s_ActionMappings.find(actionName);
         if (l_Found == s_ActionMappings.end())
         {
             return false;
@@ -198,9 +198,9 @@ namespace Engine
         return false;
     }
 
-    bool Input::WasActionPressedThisFrame(const std::string& l_ActionName)
+    bool Input::WasActionPressedThisFrame(const std::string& actionName)
     {
-        const auto l_Found = s_ActionMappings.find(l_ActionName);
+        const auto l_Found = s_ActionMappings.find(actionName);
         if (l_Found == s_ActionMappings.end())
         {
             return false;
@@ -217,29 +217,29 @@ namespace Engine
         return false;
     }
 
-    bool Input::EvaluateCombinationDown(const std::vector<int>& l_KeyCombination)
+    bool Input::EvaluateCombinationDown(const std::vector<int>& keyCombination)
     {
-        for (int l_Key : l_KeyCombination)
+        for (int it_Key : keyCombination)
         {
-            if (!IsKeyDown(l_Key))
+            if (!IsKeyDown(it_Key))
             {
                 return false;
             }
         }
 
-        return !l_KeyCombination.empty();
+        return !keyCombination.empty();
     }
 
-    bool Input::EvaluateCombinationPressed(const std::vector<int>& l_KeyCombination)
+    bool Input::EvaluateCombinationPressed(const std::vector<int>& keyCombination)
     {
         bool l_AllKeysDown = true;
         bool l_EdgeDetected = false;
-        for (int l_Key : l_KeyCombination)
+        for (int it_Key : keyCombination)
         {
-            l_AllKeysDown = l_AllKeysDown && IsKeyDown(l_Key);
-            l_EdgeDetected = l_EdgeDetected || WasKeyPressedThisFrame(l_Key);
+            l_AllKeysDown = l_AllKeysDown && IsKeyDown(it_Key);
+            l_EdgeDetected = l_EdgeDetected || WasKeyPressedThisFrame(it_Key);
         }
 
-        return l_AllKeysDown && l_EdgeDetected && !l_KeyCombination.empty();
+        return l_AllKeysDown && l_EdgeDetected && !keyCombination.empty();
     }
 }

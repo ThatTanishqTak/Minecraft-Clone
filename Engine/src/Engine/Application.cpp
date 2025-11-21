@@ -69,9 +69,9 @@ namespace Engine
         }
 
                 // Dispatch input and window events to the active layer before per-frame work executes.
-        m_Window.SetEventCallback([this](const Event& l_Event)
+        m_Window.SetEventCallback([this](const Event& event)
             {
-                OnEvent(l_Event);
+                OnEvent(event);
             });
 
         // Configure the viewport to the current framebuffer size for accurate presentation.

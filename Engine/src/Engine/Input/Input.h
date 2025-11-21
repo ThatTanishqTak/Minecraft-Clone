@@ -11,14 +11,6 @@
 
 namespace Engine
 {
-    // Centralized, frame-scoped input cache.
-    //
-    // Lifecycle expectations:
-    // - BeginFrame() must be called once at the top of the main loop before pumping window events.
-    // - EndFrame() should be called after per-frame work is complete.
-    // Threading assumptions:
-    // - Input is not thread-safe. OnEvent and query functions are expected to be invoked from the
-    //   main thread that owns the windowing system callbacks.
     class ENGINE_API Input
     {
     public:
@@ -26,17 +18,17 @@ namespace Engine
         static void EndFrame();
 
         // Cache incoming events so gameplay code can query state without owning callbacks.
-        static void OnEvent(const Event& l_Event);
+        static void OnEvent(const Event& event);
 
         // Key queries ------------------------------------------------------
-        static bool IsKeyDown(int l_KeyCode);
-        static bool WasKeyPressedThisFrame(int l_KeyCode);
-        static bool WasKeyReleasedThisFrame(int l_KeyCode);
+        static bool IsKeyDown(int keyCode);
+        static bool WasKeyPressedThisFrame(int keyCode);
+        static bool WasKeyReleasedThisFrame(int keyCode);
 
         // Mouse button queries ---------------------------------------------
-        static bool IsMouseButtonDown(int l_Button);
-        static bool WasMouseButtonPressedThisFrame(int l_Button);
-        static bool WasMouseButtonReleasedThisFrame(int l_Button);
+        static bool IsMouseButtonDown(int button);
+        static bool WasMouseButtonPressedThisFrame(int button);
+        static bool WasMouseButtonReleasedThisFrame(int button);
 
         // Pointer deltas ---------------------------------------------------
         static std::pair<float, float> GetMousePosition();
@@ -45,14 +37,14 @@ namespace Engine
 
         // Action mappings allow gameplay systems to reason about intent
         // instead of concrete keycodes (e.g., "MoveForward").
-        static void RegisterActionMapping(const std::string& l_ActionName, const std::vector<int>& l_KeyCombination);
-        static void ClearActionMapping(const std::string& l_ActionName);
-        static bool IsActionDown(const std::string& l_ActionName);
-        static bool WasActionPressedThisFrame(const std::string& l_ActionName);
+        static void RegisterActionMapping(const std::string& actionName, const std::vector<int>& keyCombination);
+        static void ClearActionMapping(const std::string& actionName);
+        static bool IsActionDown(const std::string& actionName);
+        static bool WasActionPressedThisFrame(const std::string& actionName);
 
     private:
-        static bool EvaluateCombinationDown(const std::vector<int>& l_KeyCombination);
-        static bool EvaluateCombinationPressed(const std::vector<int>& l_KeyCombination);
+        static bool EvaluateCombinationDown(const std::vector<int>& keyCombination);
+        static bool EvaluateCombinationPressed(const std::vector<int>& keyCombination);
 
         // Internal caches --------------------------------------------------
         static std::unordered_map<int, bool> s_KeyStates;
