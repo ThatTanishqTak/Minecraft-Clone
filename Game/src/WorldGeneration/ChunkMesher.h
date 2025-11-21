@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 
 #include "Engine/Renderer/Mesh.h"
+#include "TextureAtlas.h"
 #include "Block.h"
 #include "Chunk.h"
 
@@ -18,7 +19,7 @@ struct MeshedChunk
 class ChunkMesher
 {
 public:
-    ChunkMesher();
+    explicit ChunkMesher(const TextureAtlas* textureAtlas);
 
     MeshedChunk Mesh(const Chunk& chunk) const;
 
@@ -27,4 +28,7 @@ private:
     void EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection, const glm::vec3& vDirection, const glm::vec3& normal,
         BlockId blockId, BlockFace face, MeshedChunk& outMesh) const;
     glm::vec3 GetBlockFaceColor(BlockId blockId, BlockFace face) const;
+
+private:
+    const TextureAtlas* m_TextureAtlas = nullptr;
 };

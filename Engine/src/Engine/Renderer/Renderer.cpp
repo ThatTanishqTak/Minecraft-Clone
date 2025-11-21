@@ -101,18 +101,18 @@ namespace Engine
         s_DefaultShader->SetMat4("u_Model", modelMatrix);
 
         const bool l_ShaderUsesTexture = s_DefaultShader->HasUniform("u_Texture");
-        if (l_ShaderUsesTexture)
+        const bool l_HasTexture = l_ShaderUsesTexture && texture != nullptr;
+
+        // Inform the shader whether texturing is active so it can fall back to vertex colors when needed.
+        if (s_DefaultShader->HasUniform("u_HasTexture"))
         {
-            // Only bind a texture if one was explicitly provided; avoid fallback bindings so the color path stays texture free.
-            if (texture != nullptr)
-            {
-                texture->Bind(0);
-                s_DefaultShader->SetInt("u_Texture", 0);
-            }
-            else
-            {
-                ENGINE_TRACE("Skipping texture binding for color-only shader path despite sampler uniform availability");
-            }
+            s_DefaultShader->SetInt("u_HasTexture", l_HasTexture ? 1 : 0);
+        }
+
+        if (l_HasTexture)
+        {
+            texture->Bind(0);
+            s_DefaultShader->SetInt("u_Texture", 0);
         }
 
         mesh.Bind();

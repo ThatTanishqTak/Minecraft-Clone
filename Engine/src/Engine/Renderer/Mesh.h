@@ -18,6 +18,7 @@ namespace Engine
             glm::vec3 m_Position;
             glm::vec3 m_Normal;
             glm::vec3 m_Color;
+            glm::vec2 m_UV;
         };
 
         Mesh(const std::vector<Vertex>& vertices, const std::vector<uint32_t>& indices);

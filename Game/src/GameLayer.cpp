@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <filesystem>
 
 #include "Engine/Events/Events.h"
 #include "Engine/Core/Log.h"
@@ -33,6 +34,40 @@ bool GameLayer::Initialize()
 
     GAME_INFO("GameLayer initialization starting");
 
+    // Load the block atlas so UVs can be generated during meshing and sampled at render time.
+    const std::filesystem::path l_AtlasPath = std::filesystem::path("Assets/Textures/Atlas.png");
+    const glm::ivec2 l_AtlasTileSize{ 16, 16 };
+
+    m_TextureAtlas = std::make_unique<TextureAtlas>();
+    if (!m_TextureAtlas->Load(l_AtlasPath.string(), l_AtlasTileSize))
+    {
+        GAME_ERROR("GameLayer failed to load texture atlas at {}", l_AtlasPath.string());
+
+        return false;
+    }
+
+    // Register UVs for each block face so the mesher can emit correct coordinates.
+    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::Top, glm::ivec2{ 0, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::Bottom, glm::ivec2{ 2, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::North, glm::ivec2{ 1, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::South, glm::ivec2{ 1, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::East, glm::ivec2{ 1, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::West, glm::ivec2{ 1, 0 });
+
+    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::Top, glm::ivec2{ 2, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::Bottom, glm::ivec2{ 2, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::North, glm::ivec2{ 2, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::South, glm::ivec2{ 2, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::East, glm::ivec2{ 2, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::West, glm::ivec2{ 2, 0 });
+
+    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::Top, glm::ivec2{ 3, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::Bottom, glm::ivec2{ 3, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::North, glm::ivec2{ 3, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::South, glm::ivec2{ 3, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::East, glm::ivec2{ 3, 0 });
+    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::West, glm::ivec2{ 3, 0 });
+
     // Position the camera above the highest generated terrain so the player spawns in open space.
     const float l_SpawnHeight = CalculateSpawnHeightAboveTerrain();
     m_CameraPosition.y = l_SpawnHeight;
@@ -47,8 +82,9 @@ bool GameLayer::Initialize()
     GAME_TRACE("Camera primed for rendering with FOV {} degrees", m_CameraFieldOfViewDegrees);
 
     m_Chunk = std::make_unique<Chunk>(glm::ivec3{ 0 });
-    m_ChunkMesher = std::make_unique<ChunkMesher>();
+    m_ChunkMesher = std::make_unique<ChunkMesher>(m_TextureAtlas.get());
     m_ChunkRenderer = std::make_unique<ChunkRenderer>();
+    m_ChunkRenderer->SetTexture(m_TextureAtlas->GetTexture());
     GAME_TRACE("Chunk systems created and ready");
 
     GenerateTestChunk();

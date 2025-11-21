@@ -18,7 +18,8 @@ void ChunkRenderer::Render(const glm::mat4& modelMatrix) const
         return;
     }
 
-    Engine::Renderer::SubmitMesh(*m_Mesh, modelMatrix);
+    // Submit the mesh with the active atlas texture so the shader can sample block surfaces.
+    Engine::Renderer::SubmitMesh(*m_Mesh, modelMatrix, m_Texture);
 
     //GAME_TRACE("ChunkRenderer submitted mesh for rendering");
 }

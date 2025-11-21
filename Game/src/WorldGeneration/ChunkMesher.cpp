@@ -4,9 +4,10 @@
 
 #include <array>
 
-ChunkMesher::ChunkMesher()
+ChunkMesher::ChunkMesher(const TextureAtlas* textureAtlas) : m_TextureAtlas(textureAtlas)
 {
-    GAME_TRACE("ChunkMesher constructed");
+    // Capture atlas pointer up front so meshing can emit UVs for each quad.
+    GAME_TRACE("ChunkMesher constructed with texture atlas: {}", m_TextureAtlas != nullptr);
 }
 
 MeshedChunk ChunkMesher::Mesh(const Chunk& chunk) const
@@ -187,11 +188,25 @@ void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection,
 
     const glm::vec3 l_Color = GetBlockFaceColor(blockId, face);
 
+    BlockFaceUV l_FaceUV{};
+    if (m_TextureAtlas != nullptr)
+    {
+        l_FaceUV = m_TextureAtlas->GetFaceUVs(blockId, face);
+    }
+
+    // Map UVs to the quad corners in winding order (P0 -> P1 -> P2 -> P3).
+    const std::array<glm::vec2, 4> l_UVs = {
+        l_FaceUV.m_UV00,
+        l_FaceUV.m_UV01,
+        l_FaceUV.m_UV11,
+        l_FaceUV.m_UV10
+    };
+
     const std::array<Engine::Mesh::Vertex, 4> l_Vertices = {
-        Engine::Mesh::Vertex{ l_P0, normal, l_Color },
-        Engine::Mesh::Vertex{ l_P1, normal, l_Color },
-        Engine::Mesh::Vertex{ l_P2, normal, l_Color },
-        Engine::Mesh::Vertex{ l_P3, normal, l_Color },
+        Engine::Mesh::Vertex{ l_P0, normal, l_Color, l_UVs[0] },
+        Engine::Mesh::Vertex{ l_P1, normal, l_Color, l_UVs[1] },
+        Engine::Mesh::Vertex{ l_P2, normal, l_Color, l_UVs[2] },
+        Engine::Mesh::Vertex{ l_P3, normal, l_Color, l_UVs[3] },
     };
 
     const uint32_t l_StartIndex = static_cast<uint32_t>(outMesh.m_Vertices.size());

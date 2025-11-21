@@ -60,6 +60,10 @@ namespace Engine
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, m_Color)));
 
+        // Texture coordinate attribute (location = 3) for sampling atlases in shaders.
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(offsetof(Vertex, m_UV)));
+
         m_VertexBuffer->Unbind();
 
         // Rebind the index buffer while the VAO is active so the draw call uses the correct element array.
