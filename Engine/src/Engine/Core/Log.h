@@ -3,6 +3,8 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/gtx/string_cast.hpp"
 
+#include "Engine/Core/Core.h"
+
 // This ignores all warnings raised inside External headers
 #ifdef _MSC_VER
 #pragma warning(push, 0)
@@ -17,7 +19,7 @@ namespace Engine
 {
     namespace Utilities
     {
-        class Log
+        class ENGINE_API Log
         {
         public:
             static void Initialize();
