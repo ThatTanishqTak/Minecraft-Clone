@@ -1,10 +1,14 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <glad/glad.h>
+#include <glm/glm.hpp>
 
 #include "Engine/Core/Core.h"
 #include "Engine/Renderer/Buffers.h"
+#include "Engine/Renderer/Camera.h"
+#include "Engine/Renderer/Mesh.h"
 #include "Engine/Renderer/RendererCommands.h"
 #include "Engine/Renderer/Shader.h"
 
@@ -19,12 +23,25 @@ namespace Engine
 
         static void BeginFrame();
         static void EndFrame();
-        static void DrawPlaceholderGeometry();
+        static void SubmitMesh(const Mesh& mesh, const glm::mat4& modelMatrix);
+
+        static Camera& GetCamera() { return s_Camera; }
 
     private:
-        static GLuint s_VertexArrayObject;
-        static std::shared_ptr<VertexBuffer> s_PlaceholderVertexBuffer;
-        static std::shared_ptr<IndexBuffer> s_PlaceholderIndexBuffer;
-        static std::shared_ptr<Shader> s_PlaceholderShader;
+        struct PerFrameData
+        {
+            glm::mat4 m_View;
+            glm::mat4 m_Projection;
+        };
+
+        static bool CreatePerFrameBuffer();
+        static void UpdatePerFrameBuffer();
+        static std::string LoadShaderSource(const std::string& filename);
+
+        static GLuint s_PerFrameUniformBuffer;
+        static constexpr GLuint s_PerFrameBindingPoint = 0;
+
+        static Camera s_Camera;
+        static std::shared_ptr<Shader> s_DefaultShader;
     };
 }

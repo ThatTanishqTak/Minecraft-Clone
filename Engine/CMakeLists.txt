@@ -14,7 +14,13 @@ file(GLOB_RECURSE ENGINE_SOURCES
     src/*.h
 )
 
+# Shader sources are tracked so IDEs show them and they are copied next to the binaries.
+file(GLOB ENGINE_SHADER_SOURCES
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/Engine/Renderer/Shaders/*
+)
+
 target_sources(Engine PRIVATE ${ENGINE_SOURCES})
+target_sources(Engine PRIVATE ${ENGINE_SHADER_SOURCES})
 
 # ------------------------------------------------------------------
 # Include directories
@@ -119,4 +125,11 @@ target_compile_definitions(Engine PRIVATE ENGINE_BUILD_DLL)
 set_target_properties(Engine PROPERTIES
     DEBUG_POSTFIX "d"                  # Engined.dll in Debug builds
     WINDOWS_EXPORT_ALL_SYMBOLS ON      # optional fallback
+)
+
+# Copy shader sources next to the built binaries for runtime loading.
+add_custom_command(TARGET Engine POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/Engine/Renderer/Shaders
+        $<TARGET_FILE_DIR:Engine>/Shaders
 )

@@ -48,6 +48,21 @@ namespace Engine
         glUseProgram(0);
     }
 
+    void Shader::SetMat4(const std::string& uniformName, const glm::mat4& matrix) const
+    {
+        const GLint l_Location = glGetUniformLocation(m_ProgramId, uniformName.c_str());
+        glUniformMatrix4fv(l_Location, 1, GL_FALSE, &matrix[0][0]);
+    }
+
+    void Shader::BindUniformBlock(const std::string& blockName, GLuint bindingPoint) const
+    {
+        const GLuint l_BlockIndex = glGetUniformBlockIndex(m_ProgramId, blockName.c_str());
+        if (l_BlockIndex != GL_INVALID_INDEX)
+        {
+            glUniformBlockBinding(m_ProgramId, l_BlockIndex, bindingPoint);
+        }
+    }
+
     bool Shader::CompileShader(GLuint shaderID, const char* shaderSource)
     {
         const char* l_Source = shaderSource;

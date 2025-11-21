@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <glm/glm.hpp>
 #include <glad/glad.h>
 
 namespace Engine
@@ -16,6 +17,10 @@ namespace Engine
 
         void Bind() const;
         void Unbind() const;
+
+        // Convenience helpers for binding uniforms.
+        void SetMat4(const std::string& uniformName, const glm::mat4& matrix) const;
+        void BindUniformBlock(const std::string& blockName, GLuint bindingPoint) const;
 
         GLuint GetProgramId() const { return m_ProgramId; }
 

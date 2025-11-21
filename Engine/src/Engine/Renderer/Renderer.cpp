@@ -1,133 +1,135 @@
 #include "Engine/Renderer/Renderer.h"
 
-#include <array>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
+
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace Engine
 {
-    GLuint Renderer::s_VertexArrayObject = 0;
-    std::shared_ptr<VertexBuffer> Renderer::s_PlaceholderVertexBuffer = nullptr;
-    std::shared_ptr<IndexBuffer> Renderer::s_PlaceholderIndexBuffer = nullptr;
-    std::shared_ptr<Shader> Renderer::s_PlaceholderShader = nullptr;
+    GLuint Renderer::s_PerFrameUniformBuffer = 0;
+    Camera Renderer::s_Camera;
+    std::shared_ptr<Shader> Renderer::s_DefaultShader = nullptr;
 
     bool Renderer::Initialize()
     {
-        // Minimal shader sources for placeholder geometry rendering.
-        const char* l_VertexSource = R"(
-            #version 430 core
-            layout (location = 0) in vec3 aPos;
-
-            void main()
-            {
-                gl_Position = vec4(aPos, 1.0);
-            }
-        )";
-
-        const char* l_FragmentSource = R"(
-            #version 430 core
-            out vec4 FragColor;
-
-            void main()
-            {
-                FragColor = vec4(0.5, 0.5, 0.5, 1.0);
-            }
-        )";
-
-        s_PlaceholderShader = std::make_shared<Shader>(l_VertexSource, l_FragmentSource);
-        if (s_PlaceholderShader == nullptr || !s_PlaceholderShader->IsValid())
+        // Build shader program from external sources so they are reusable across meshes.
+        s_DefaultShader = std::make_shared<Shader>(LoadShaderSource("Basic.vert"), LoadShaderSource("Basic.frag"));
+        if (s_DefaultShader == nullptr || !s_DefaultShader->IsValid())
         {
-            std::cout << "Failed to create placeholder shader" << std::endl;
-
+            std::cout << "Failed to create default shader" << std::endl;
             return false;
         }
 
-        // Two triangles forming a simple quad footprint in normalized device coordinates.
-        std::array<float, 18> l_Vertices =
+        s_DefaultShader->BindUniformBlock("PerFrame", s_PerFrameBindingPoint);
+
+        if (!CreatePerFrameBuffer())
         {
-            // First triangle
-            -0.5f, -0.5f, 0.0f,  // bottom-left
-             0.5f, -0.5f, 0.0f,  // bottom-right
-             0.5f,  0.5f, 0.0f,  // top-right
+            return false;
+        }
 
-             // Second triangle
-              0.5f,  0.5f, 0.0f,  // top-right
-             -0.5f,  0.5f, 0.0f,  // top-left
-             -0.5f, -0.5f, 0.0f   // bottom-left
-        };
-
-        std::array<unsigned int, 6> l_Indices =
-        {
-            0, 1, 2,
-            3, 4, 5
-        };
-
-        s_PlaceholderVertexBuffer = std::make_shared<VertexBuffer>(l_Vertices.data(), sizeof(float) * l_Vertices.size(), GL_STATIC_DRAW);
-        s_PlaceholderIndexBuffer = std::make_shared<IndexBuffer>(l_Indices.data(), l_Indices.size(), GL_UNSIGNED_INT, GL_STATIC_DRAW);
-
-        glGenVertexArrays(1, &s_VertexArrayObject);
-        glBindVertexArray(s_VertexArrayObject);
-
-        s_PlaceholderVertexBuffer->Bind();
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), reinterpret_cast<void*>(0));
-        glEnableVertexAttribArray(0);
-        s_PlaceholderVertexBuffer->Unbind();
-
-        glBindVertexArray(0);
+        // Prime the camera with a default projection to avoid rendering artifacts.
+        s_Camera.SetPerspective(glm::radians(45.0f), 0.1f, 1000.0f);
 
         return true;
     }
 
     void Renderer::Shutdown()
     {
-        // Release GPU resources before tearing down OpenGL state.
-        s_PlaceholderShader.reset();
-        s_PlaceholderVertexBuffer.reset();
-        s_PlaceholderIndexBuffer.reset();
+        s_DefaultShader.reset();
 
-        if (s_VertexArrayObject != 0)
+        if (s_PerFrameUniformBuffer != 0)
         {
-            glDeleteVertexArrays(1, &s_VertexArrayObject);
-            s_VertexArrayObject = 0;
+            glDeleteBuffers(1, &s_PerFrameUniformBuffer);
+            s_PerFrameUniformBuffer = 0;
         }
     }
 
     void Renderer::BeginFrame()
     {
-        // Ensure the viewport matches the framebuffer each frame.
+        // Sync projection with the framebuffer to avoid stretching when windows are resized.
         GLint l_Viewport[4] = { 0, 0, 0, 0 };
         glGetIntegerv(GL_VIEWPORT, l_Viewport);
         RendererCommands::SetViewport(l_Viewport[0], l_Viewport[1], l_Viewport[2], l_Viewport[3]);
 
-        // Establish clear color and depth state to keep frames deterministic.
+        s_Camera.SetViewportSize(static_cast<float>(l_Viewport[2]), static_cast<float>(l_Viewport[3]));
+        UpdatePerFrameBuffer();
+
+        // Establish deterministic render state every frame.
         RendererCommands::EnableDepthTest();
+        glEnable(GL_CULL_FACE);
+        glCullFace(GL_BACK);
         RendererCommands::SetClearColor(0.05f, 0.05f, 0.05f, 1.0f);
         RendererCommands::Clear();
     }
 
     void Renderer::EndFrame()
     {
-
+        // Future post-processing and debug UI could be wired here.
     }
 
-    void Renderer::DrawPlaceholderGeometry()
+    void Renderer::SubmitMesh(const Mesh& mesh, const glm::mat4& modelMatrix)
     {
-        if (s_PlaceholderShader == nullptr || s_PlaceholderIndexBuffer == nullptr || s_VertexArrayObject == 0)
+        if (s_DefaultShader == nullptr || !s_DefaultShader->IsValid())
         {
             return;
         }
 
-        // Bind minimal state for drawing the placeholder quad.
-        glBindVertexArray(s_VertexArrayObject);
-        s_PlaceholderShader->Bind();
-        s_PlaceholderIndexBuffer->Bind();
+        s_DefaultShader->Bind();
+        s_DefaultShader->SetMat4("u_Model", modelMatrix);
 
-        // Issue a draw using the placeholder buffers to visualize a simple quad.
-        glDrawElements(GL_TRIANGLES, s_PlaceholderIndexBuffer->GetCount(), s_PlaceholderIndexBuffer->GetIndexType(), nullptr);
+        mesh.Bind();
+        glDrawElements(GL_TRIANGLES, mesh.GetIndexCount(), GL_UNSIGNED_INT, nullptr);
+        mesh.Unbind();
 
-        // Unbind resources to leave the OpenGL state clean for subsequent draws.
-        s_PlaceholderIndexBuffer->Unbind();
-        s_PlaceholderShader->Unbind();
-        glBindVertexArray(0);
+        s_DefaultShader->Unbind();
+    }
+
+    bool Renderer::CreatePerFrameBuffer()
+    {
+        glGenBuffers(1, &s_PerFrameUniformBuffer);
+        glBindBuffer(GL_UNIFORM_BUFFER, s_PerFrameUniformBuffer);
+        glBufferData(GL_UNIFORM_BUFFER, sizeof(PerFrameData), nullptr, GL_DYNAMIC_DRAW);
+        glBindBufferBase(GL_UNIFORM_BUFFER, s_PerFrameBindingPoint, s_PerFrameUniformBuffer);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+        return s_PerFrameUniformBuffer != 0;
+    }
+
+    void Renderer::UpdatePerFrameBuffer()
+    {
+        if (s_PerFrameUniformBuffer == 0)
+        {
+            return;
+        }
+
+        PerFrameData l_Data{};
+        l_Data.m_View = s_Camera.GetViewMatrix();
+        l_Data.m_Projection = s_Camera.GetProjectionMatrix();
+
+        glBindBuffer(GL_UNIFORM_BUFFER, s_PerFrameUniformBuffer);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(PerFrameData), &l_Data);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    }
+
+    std::string Renderer::LoadShaderSource(const std::string& filename)
+    {
+        // Resolve the shader directory relative to this source file so runtime lookups are stable.
+        const std::filesystem::path l_ShaderDirectory = std::filesystem::path(__FILE__).parent_path() / "Shaders";
+        const std::filesystem::path l_FilePath = l_ShaderDirectory / filename;
+
+        std::ifstream l_FileStream(l_FilePath, std::ios::in | std::ios::binary);
+        if (!l_FileStream)
+        {
+            std::cout << "Failed to open shader file: " << l_FilePath << std::endl;
+            return {};
+        }
+
+        std::stringstream l_Buffer;
+        l_Buffer << l_FileStream.rdbuf();
+        return l_Buffer.str();
     }
 }

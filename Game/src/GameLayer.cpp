@@ -67,9 +67,6 @@ void GameLayer::Render()
         // Prevent rendering before the layer is ready.
         return;
     }
-
-    // Render a simple placeholder quad until world geometry is available.
-    Engine::Renderer::DrawPlaceholderGeometry();
 }
 
 void GameLayer::OnEvent(const Engine::Event& event)
