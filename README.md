@@ -4,8 +4,6 @@ A voxel sandbox engine and game built in **C/C++20** with **OpenGL**, structured
 
 This project uses a modern CMake workflow, vendor-managed dependencies, and a layered system that separates engine functionality from game-specific logic.
 
----
-
 ## **Overview**
 
 The project is split into two modules:
@@ -29,54 +27,6 @@ Links against the Engine and provides:
 * Custom `GameLayer` for high-level game-specific logic
 * Asset folder auto-copied at build time
 * Entry point (`main`) that launches the Engine’s application
-
----
-
-## **Project Structure**
-
-```
-Minecraft-Clone/
-│
-├─ bin/                                 # Build artifacts (exe, dll, assets)
-│
-├─ Engine/                              # Engine DLL
-│   ├─ src/
-│   │   └─ Engine/
-│   │       ├─ Application.cpp/.h       # Core app loop and lifecycle
-│   │       ├─ Layer/                   # Layer system contracts
-│   │       │   └─ Layer.h
-│   │       ├─ Renderer/                # Minimal quad renderer scaffold
-│   │       │   ├─ Renderer.cpp/.h
-│   │       └─ Window/                  # GLFW + OpenGL context management
-│   │           ├─ Window.cpp/.h
-│   ├─ vendor/                          # Third-party libraries
-│   │   ├─ entt
-│   │   ├─ glad
-│   │   ├─ glfw
-│   │   ├─ glm
-│   │   ├─ spdlog
-│   │   ├─ stb
-│   │   └─ yaml-cpp
-│   └─ CMakeLists.txt
-│
-├─ Game/                                # Game EXE
-│   ├─ Assets/                          # Copied alongside binaries
-│   ├─ src/
-│   │   ├─ GameLayer.cpp/.h             # Game-specific logic + rendering entry
-│   │   └─ EntryPoint.cpp               # Application bootstrap
-│   └─ CMakeLists.txt
-│
-├─ out/                                 # Build system output (CMake presets)
-│
-├─ CMakeLists.txt                       # Root build script
-├─ CMakePresets.json                    # Build configurations
-├─ .gitignore
-├─ .gitmodules
-├─ LICENSE
-└─ README.md
-```
-
----
 
 ## **Features**
 
@@ -117,8 +67,6 @@ Upcoming:
 * Block registry and world generation
 * Renderer cleanup hooks for future post-processing
 
----
-
 ## **Dependencies**
 
 Already included in `Engine/vendor/`:
@@ -134,8 +82,6 @@ Already included in `Engine/vendor/`:
 | entt     | ECS                         |
 
 No external downloads needed.
-
----
 
 ## **Build Instructions**
 
@@ -203,11 +149,5 @@ Containing:
 * Event system
 * Editor layer (ImGui)
 * Scene serialization
-
----
-
-## **License**
-
-Apache-2.0 license.
 
 ---
