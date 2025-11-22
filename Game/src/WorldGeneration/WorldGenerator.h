@@ -18,6 +18,7 @@ struct WorldGeneratorConfig
     float m_CaveFrequency = 0.08f;
     float m_CaveThreshold = 0.18f;
     int m_SoilDepth = 3;
+    bool m_EnableNoise = true; // Toggle to disable noise for deterministic flat worlds used during threading tests.
 };
 
 // GeneratedColumn stores the surface height and block stack for a single (x, z) position within a chunk.

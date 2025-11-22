@@ -93,6 +93,7 @@ bool GameLayer::Initialize()
     l_WorldGeneratorConfig.m_BiomeStrength = 4.0f;
     l_WorldGeneratorConfig.m_CaveFrequency = 0.07f;
     l_WorldGeneratorConfig.m_CaveThreshold = 0.22f;
+    l_WorldGeneratorConfig.m_EnableNoise = false; // Toggle to false for flat terrain when running deterministic threading tests.
 
     m_WorldGenerator = std::make_unique<WorldGenerator>(l_WorldGeneratorConfig);
 

@@ -27,6 +27,12 @@ WorldGenerator::WorldGenerator(WorldGeneratorConfig config) : m_Config(config)
 
 int WorldGenerator::CalculateSurfaceHeight(int worldX, int worldZ) const
 {
+    // Short-circuit noise when flat terrain is requested so multithreaded generation can be validated deterministically.
+    if (!m_Config.m_EnableNoise)
+    {
+        return std::clamp(m_Config.m_BaseHeight, 0, Chunk::CHUNK_SIZE - 1);
+    }
+
     const float l_ScaledX = static_cast<float>(worldX) * m_Config.m_HeightFrequency;
     const float l_ScaledZ = static_cast<float>(worldZ) * m_Config.m_HeightFrequency;
 
@@ -50,6 +56,41 @@ GeneratedColumn WorldGenerator::GenerateColumn(const glm::ivec3& chunkCoordinate
     const int l_WorldX = chunkCoordinate.x * Chunk::CHUNK_SIZE + localX;
     const int l_WorldZ = chunkCoordinate.z * Chunk::CHUNK_SIZE + localZ;
     l_Column.m_SurfaceHeight = CalculateSurfaceHeight(l_WorldX, l_WorldZ);
+
+    // When noise is disabled, build a predictable stack (stone ? dirt ? grass) and skip cave carving entirely.
+    if (!m_Config.m_EnableNoise)
+    {
+        const int l_WorldBottom = chunkCoordinate.y * Chunk::CHUNK_SIZE;
+        const int l_WorldTop = l_WorldBottom + Chunk::CHUNK_SIZE - 1;
+        l_Column.m_SurfaceHeight = std::clamp(m_Config.m_BaseHeight, l_WorldBottom, l_WorldTop);
+
+        for (int l_LocalY = 0; l_LocalY < Chunk::CHUNK_SIZE; ++l_LocalY)
+        {
+            const int l_WorldY = l_WorldBottom + l_LocalY;
+            BlockId l_Block = BlockId::Air;
+
+            if (l_WorldY <= l_Column.m_SurfaceHeight)
+            {
+                // Preserve the same soil layering without invoking per-column noise to keep the path deterministic.
+                if (l_WorldY < l_Column.m_SurfaceHeight - m_Config.m_SoilDepth)
+                {
+                    l_Block = BlockId::Stone;
+                }
+                else if (l_WorldY < l_Column.m_SurfaceHeight)
+                {
+                    l_Block = BlockId::Dirt;
+                }
+                else
+                {
+                    l_Block = BlockId::Grass;
+                }
+            }
+
+            l_Column.m_Blocks[l_LocalY] = l_Block;
+        }
+
+        return l_Column;
+    }
 
     const float l_CaveFrequency = m_Config.m_CaveFrequency;
 
