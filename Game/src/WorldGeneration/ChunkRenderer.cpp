@@ -2,12 +2,12 @@
 
 #include "Engine/Core/Log.h"
 
-void ChunkRenderer::UpdateMesh(const MeshedChunk& meshedChunk)
+void ChunkRenderer::UpdateMesh(const std::shared_ptr<Engine::Mesh>& meshBuffer)
 {
-    // Replace the existing mesh with freshly generated geometry from the mesher.
-    m_Mesh = std::make_unique<Engine::Mesh>(meshedChunk.m_Vertices, meshedChunk.m_Indices);
+    // Cache the shared mesh buffer for this chunk so it can be reused by the pool.
+    m_Mesh = meshBuffer;
 
-    GAME_TRACE("ChunkRenderer mesh updated with {} vertices and {} indices", meshedChunk.m_Vertices.size(), meshedChunk.m_Indices.size());
+    GAME_TRACE("ChunkRenderer mesh updated with shared buffer ({} indices)", m_Mesh != nullptr ? m_Mesh->GetIndexCount() : 0);
 }
 
 void ChunkRenderer::Render(const glm::mat4& modelMatrix) const

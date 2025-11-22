@@ -60,6 +60,7 @@ void World::UpdateActiveChunks(const glm::ivec3& centerChunkCoordinate)
         if (l_DesiredChunks.find(it_Chunk->first) == l_DesiredChunks.end())
         {
             GAME_TRACE("Unloading chunk at ({}, {}, {})", it_Chunk->first.x, it_Chunk->first.y, it_Chunk->first.z);
+            m_MeshPool.erase(it_Chunk->first);
             it_Chunk = m_ActiveChunks.erase(it_Chunk);
         }
         else
@@ -81,6 +82,18 @@ void World::RefreshChunkMeshes()
     {
         MeshChunkIfDirty(it_ChunkEntry.second);
     }
+}
+
+void World::MarkChunkDirty(const glm::ivec3& chunkCoordinate)
+{
+    const auto it_Chunk = m_ActiveChunks.find(chunkCoordinate);
+    if (it_Chunk == m_ActiveChunks.end())
+    {
+        return;
+    }
+
+    // Flag the chunk so the next refresh pass will regenerate its mesh from cached block data.
+    it_Chunk->second.m_IsDirty = true;
 }
 
 void World::Shutdown()
@@ -107,9 +120,8 @@ void World::CreateChunkIfMissing(const glm::ivec3& chunkCoordinate)
     l_NewChunk.m_IsDirty = true;
 
     auto a_EmplaceResult = m_ActiveChunks.emplace(chunkCoordinate, std::move(l_NewChunk));
-    MeshChunkIfDirty(a_EmplaceResult.first->second);
 
-    GAME_TRACE("Chunk created and meshed at ({}, {}, {})", chunkCoordinate.x, chunkCoordinate.y, chunkCoordinate.z);
+    GAME_TRACE("Chunk created and marked dirty at ({}, {}, {})", chunkCoordinate.x, chunkCoordinate.y, chunkCoordinate.z);
 }
 
 void World::PopulateChunkBlocks(Chunk& chunk) const
@@ -143,7 +155,24 @@ void World::MeshChunkIfDirty(ActiveChunk& chunkData)
         return;
     }
 
+    if (chunkData.m_Chunk == nullptr)
+    {
+        return;
+    }
+
+    const glm::ivec3 l_ChunkCoordinate = chunkData.m_Chunk->GetPosition();
+
+    // Meshing is cached per chunk coordinate so re-uploads reuse pooled buffers when possible.
     const MeshedChunk l_MeshedChunk = m_ChunkMesher->Mesh(*chunkData.m_Chunk);
-    chunkData.m_Renderer->UpdateMesh(l_MeshedChunk);
+
+    auto it_MeshBuffer = m_MeshPool.find(l_ChunkCoordinate);
+    if (it_MeshBuffer == m_MeshPool.end())
+    {
+        it_MeshBuffer = m_MeshPool.emplace(l_ChunkCoordinate, nullptr).first;
+    }
+
+    it_MeshBuffer->second = std::make_shared<Engine::Mesh>(l_MeshedChunk.m_Vertices, l_MeshedChunk.m_Indices);
+    chunkData.m_Renderer->SetTexture(m_Texture);
+    chunkData.m_Renderer->UpdateMesh(it_MeshBuffer->second);
     chunkData.m_IsDirty = false;
 }

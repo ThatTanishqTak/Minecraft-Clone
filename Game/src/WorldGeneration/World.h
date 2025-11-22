@@ -37,6 +37,7 @@ public:
     void SetRenderDistance(int renderDistance);
     void UpdateActiveChunks(const glm::ivec3& centerChunkCoordinate);
     void RefreshChunkMeshes();
+    void MarkChunkDirty(const glm::ivec3& chunkCoordinate);
 
     const std::unordered_map<glm::ivec3, ActiveChunk, IVec3Hasher>& GetActiveChunks() const { return m_ActiveChunks; }
 
@@ -53,4 +54,5 @@ private:
     const WorldGenerator* m_WorldGenerator = nullptr;
     int m_RenderDistance = 2;
     std::unordered_map<glm::ivec3, ActiveChunk, IVec3Hasher> m_ActiveChunks;
+    std::unordered_map<glm::ivec3, std::shared_ptr<Engine::Mesh>, IVec3Hasher> m_MeshPool;
 };

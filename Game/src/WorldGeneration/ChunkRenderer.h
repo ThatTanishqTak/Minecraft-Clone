@@ -14,11 +14,11 @@ class ChunkRenderer
 public:
     ChunkRenderer() = default;
 
-    void UpdateMesh(const MeshedChunk& meshedChunk);
+    void UpdateMesh(const std::shared_ptr<Engine::Mesh>& meshBuffer);
     void SetTexture(const Engine::Texture2D* texture) { m_Texture = texture; }
     void Render(const glm::mat4& modelMatrix) const;
 
 private:
-    std::unique_ptr<Engine::Mesh> m_Mesh;
+    std::shared_ptr<Engine::Mesh> m_Mesh;
     const Engine::Texture2D* m_Texture = nullptr;
 };

@@ -10,7 +10,7 @@
 class Chunk
 {
 public:
-    static constexpr int CHUNK_SIZE = 16;
+    static constexpr int CHUNK_SIZE = 1;
     static constexpr int CHUNK_VOLUME = CHUNK_SIZE * CHUNK_SIZE * CHUNK_SIZE;
 
 public:
