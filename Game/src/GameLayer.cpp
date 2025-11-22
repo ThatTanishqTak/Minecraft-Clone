@@ -48,32 +48,42 @@ bool GameLayer::Initialize()
         return false;
     }
 
-    // Register UVs for each block face so the mesher can emit correct coordinates.
-    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::Top, glm::ivec2{ 0, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::Bottom, glm::ivec2{ 2, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::North, glm::ivec2{ 1, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::South, glm::ivec2{ 1, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::East, glm::ivec2{ 1, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Grass, BlockFace::West, glm::ivec2{ 1, 0 });
+    // Map each block to the correct tile coordinates for the provided 32x32 atlas grid. The
+    // previous placeholder atlas used the first few tiles for every block, which left the new
+    // atlas sampling the wrong pixels. Here we point the faces at the correct tiles taken from
+    // the supplied atlas image so the generated chunk uses the intended artwork.
+    struct BlockTextureDefinition
+    {
+        glm::ivec2 m_Top{};
+        glm::ivec2 m_Bottom{};
+        glm::ivec2 m_Side{};
+    };
 
-    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::Top, glm::ivec2{ 2, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::Bottom, glm::ivec2{ 2, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::North, glm::ivec2{ 2, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::South, glm::ivec2{ 2, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::East, glm::ivec2{ 2, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Dirt, BlockFace::West, glm::ivec2{ 2, 0 });
+    const BlockTextureDefinition l_GrassTextures{ glm::ivec2{ 10, 0 }, glm::ivec2{ 17, 17 }, glm::ivec2{ 10, 1 } };
+    const BlockTextureDefinition l_DirtTextures{ glm::ivec2{ 17, 17 }, glm::ivec2{ 17, 17 }, glm::ivec2{ 17, 17 } };
+    const BlockTextureDefinition l_StoneTextures{ glm::ivec2{ 19, 14 }, glm::ivec2{ 19, 14 }, glm::ivec2{ 19, 14 } };
 
-    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::Top, glm::ivec2{ 3, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::Bottom, glm::ivec2{ 3, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::North, glm::ivec2{ 3, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::South, glm::ivec2{ 3, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::East, glm::ivec2{ 3, 0 });
-    m_TextureAtlas->RegisterBlockFace(BlockId::Stone, BlockFace::West, glm::ivec2{ 3, 0 });
+    const auto a_RegisterBlockTextures = [this](BlockId blockId, const BlockTextureDefinition& textures)
+        {
+            // Register top/bottom explicitly so the atlas lookup matches the requested face.
+            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::Top, textures.m_Top);
+            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::Bottom, textures.m_Bottom);
+
+            // Sides all share a single tile to keep the definition concise.
+            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::North, textures.m_Side);
+            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::South, textures.m_Side);
+            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::East, textures.m_Side);
+            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::West, textures.m_Side);
+        };
+
+    a_RegisterBlockTextures(BlockId::Grass, l_GrassTextures);
+    a_RegisterBlockTextures(BlockId::Dirt, l_DirtTextures);
+    a_RegisterBlockTextures(BlockId::Stone, l_StoneTextures);
 
     // Position the camera above the highest generated terrain so the player spawns in open space.
     const float l_SpawnHeight = CalculateSpawnHeightAboveTerrain();
     m_CameraPosition.y = l_SpawnHeight;
-    GAME_TRACE("Calculated spawn height {:.2f} to clear generated terrain", l_SpawnHeight);
+    GAME_TRACE("Calculated spawn height {:.7f} to clear generated terrain", l_SpawnHeight);
 
     // Prime camera state so view/projection matrices are valid before the first frame.
     m_Camera.SetPerspective(glm::radians(m_CameraFieldOfViewDegrees), 0.1f, 1000.0f);
