@@ -26,8 +26,8 @@ public:
 private:
     void BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk& outMesh) const;
     void EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection, const glm::vec3& vDirection, const glm::vec3& normal,
-        BlockId blockId, BlockFace face, MeshedChunk& outMesh) const;
-    glm::vec3 GetBlockFaceColor(BlockId blockId, BlockFace face) const;
+        BlockId blockID, BlockFace face, MeshedChunk& outMesh) const;
+    glm::vec3 GetFallbackBlockFaceColor(BlockId blockID, BlockFace face) const;
 
 private:
     const TextureAtlas* m_TextureAtlas = nullptr;

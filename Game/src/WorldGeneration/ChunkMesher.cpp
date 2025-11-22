@@ -178,7 +178,7 @@ void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk
 }
 
 void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection, const glm::vec3& vDirection, const glm::vec3& normal,
-    BlockId blockId, BlockFace face, MeshedChunk& outMesh) const
+    BlockId blockID, BlockFace face, MeshedChunk& outMesh) const
 {
     // Generate four vertices forming a quad using supplied orientation vectors.
     const glm::vec3 l_P0 = origin;
@@ -186,12 +186,16 @@ void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection,
     const glm::vec3 l_P2 = origin + uDirection + vDirection;
     const glm::vec3 l_P3 = origin + uDirection;
 
-    const glm::vec3 l_Color = GetBlockFaceColor(blockId, face);
+    // Prefer sampling the atlas whenever it is available. Fall back to flat colors when the
+    // atlas is missing so rendering can continue during asset failures.
+    const bool l_HasAtlas = m_TextureAtlas != nullptr && m_TextureAtlas->GetTexture() != nullptr && m_TextureAtlas->GetTexture()->IsValid();
+
+    const glm::vec3 l_Color = l_HasAtlas ? glm::vec3{ 1.0f, 1.0f, 1.0f } : GetFallbackBlockFaceColor(blockID, face);
 
     BlockFaceUV l_FaceUV{};
-    if (m_TextureAtlas != nullptr)
+    if (l_HasAtlas)
     {
-        l_FaceUV = m_TextureAtlas->GetFaceUVs(blockId, face);
+        l_FaceUV = m_TextureAtlas->GetFaceUVs(blockID, face);
     }
 
     // Map UVs to the quad corners in winding order (P0 -> P1 -> P2 -> P3).
@@ -222,7 +226,7 @@ void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection,
     GAME_TRACE("Emitted quad at origin ({}, {}, {}) with normal ({}, {}, {})", origin.x, origin.y, origin.z, normal.x, normal.y, normal.z);
 }
 
-glm::vec3 ChunkMesher::GetBlockFaceColor(BlockId blockId, BlockFace face) const
+glm::vec3 ChunkMesher::GetFallbackBlockFaceColor(BlockId blockID, BlockFace face) const
 {
     // Provide simple, readable colors for each block type to replace UV sampling.
     // Slightly tint the colors per face to give subtle variation and depth cues.
@@ -233,7 +237,7 @@ glm::vec3 ChunkMesher::GetBlockFaceColor(BlockId blockId, BlockFace face) const
         glm::vec3{ 0.55f, 0.55f, 0.55f }, // Stone
     };
 
-    const glm::vec3 l_BaseColor = l_BaseColors.at(static_cast<size_t>(blockId));
+    const glm::vec3 l_BaseColor = l_BaseColors.at(static_cast<size_t>(blockID));
 
     const std::array<glm::vec3, static_cast<size_t>(BlockFace::Count)> l_FaceTints = {
         glm::vec3{ 1.00f, 1.00f, 1.00f }, // North
@@ -245,5 +249,6 @@ glm::vec3 ChunkMesher::GetBlockFaceColor(BlockId blockId, BlockFace face) const
     };
 
     const glm::vec3 l_Tint = l_FaceTints.at(static_cast<size_t>(face));
+
     return glm::clamp(l_BaseColor * l_Tint, glm::vec3{ 0.0f }, glm::vec3{ 1.0f });
 }

@@ -15,9 +15,6 @@ namespace Engine
 
         void Log::Initialize()
         {
-            // Guard against repeated initialization which would attempt to register the same logger names
-            // multiple times. spdlog throws an spdlog_ex when duplicate logger registration occurs, which
-            // previously surfaced as a crash when subsystems (like Camera) called Initialize more than once.
             if (s_IsInitialized)
             {
                 return;

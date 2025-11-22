@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cmath>
 #include <filesystem>
+#include <chrono>
+#include <limits>
 
 #include "Engine/Events/Events.h"
 #include "Engine/Core/Log.h"
@@ -98,7 +100,8 @@ bool GameLayer::Initialize()
     Engine::Input::RegisterActionMapping("Sprint", { GLFW_KEY_LEFT_SHIFT });
     GAME_TRACE("Input mappings registered for full movement set and Sprint");
 
-    m_LastFrameTimeSeconds = glfwGetTime();
+    // Record the first frame timestamp so delta time stays accurate even if the GLFW timer is reset externally.
+    m_LastFrameTimePoint = std::chrono::steady_clock::now();
 
     m_IsInitialized = true;
 
@@ -115,10 +118,12 @@ void GameLayer::Update()
         return;
     }
 
-    // Track frame delta so movement scales with time instead of frame count.
-    const double l_CurrentTimeSeconds = glfwGetTime();
-    m_DeltaTimeSeconds = static_cast<float>(l_CurrentTimeSeconds - m_LastFrameTimeSeconds);
-    m_LastFrameTimeSeconds = l_CurrentTimeSeconds;
+    // Track frame delta so movement scales with time instead of frame count. Using std::chrono avoids
+    // relying on GLFW's timer state, which can be reset by external calls and was leaving delta at 0.
+    const std::chrono::steady_clock::time_point l_CurrentFrameTimePoint = std::chrono::steady_clock::now();
+    const std::chrono::duration<float> l_FrameDelta = l_CurrentFrameTimePoint - m_LastFrameTimePoint;
+    m_DeltaTimeSeconds = std::max(l_FrameDelta.count(), std::numeric_limits<float>::epsilon());
+    m_LastFrameTimePoint = l_CurrentFrameTimePoint;
 
     //GAME_TRACE("Frame update started with delta time: {} seconds", m_DeltaTimeSeconds);
 

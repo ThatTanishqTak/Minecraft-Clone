@@ -61,6 +61,7 @@ namespace Engine
         }
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        //glfwWindowHint(GLFW_MAXIMIZED, 1);
 
         ENGINE_TRACE("GLFW initialized");
 

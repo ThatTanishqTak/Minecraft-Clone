@@ -12,6 +12,7 @@
 
 #include <glm/glm.hpp>
 #include <memory>
+#include <chrono>
 
 // GameLayer drives gameplay logic and rendering owned by the Game target.
 class GameLayer : public Engine::Layer
@@ -52,7 +53,7 @@ private:
     float m_CameraMoveSpeed = 15.0f;
     float m_MouseSensitivity = 0.1f;
 
-    double m_LastFrameTimeSeconds = 0.0;
+    std::chrono::steady_clock::time_point m_LastFrameTimePoint{};
     float m_DeltaTimeSeconds = 0.0f;
 
     std::unique_ptr<Chunk> m_Chunk;

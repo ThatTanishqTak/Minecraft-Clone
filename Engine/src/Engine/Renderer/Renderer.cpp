@@ -80,7 +80,7 @@ namespace Engine
         RendererCommands::EnableDepthTest();
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
-        RendererCommands::SetClearColor(0.05f, 0.05f, 0.05f, 1.0f);
+        RendererCommands::SetClearColor(0.678f, 0.847f, 0.902f, 1.0f);
         RendererCommands::Clear();
     }
 
