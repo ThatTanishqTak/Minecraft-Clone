@@ -47,6 +47,9 @@ void World::SetRenderDistance(int renderDistance)
 
 void World::UpdateActiveChunks(const glm::ivec3& centerChunkCoordinate)
 {
+    // Remember the camera center so dirty chunk prioritization can favor nearby work first.
+    m_LastCenterChunkCoordinate = centerChunkCoordinate;
+
     // Drain completed jobs first so any newly built chunks are visible before we enqueue more work.
     ProcessCompletedChunks();
 
@@ -99,14 +102,24 @@ void World::RefreshChunkMeshes()
     ProcessCompletedChunks();
 
     size_t l_JobBudget = m_MaxChunkJobsPerFrame;
-    for (auto& it_ChunkEntry : m_ActiveChunks)
-    {
-        MeshChunkIfDirty(it_ChunkEntry.second, l_JobBudget, it_ChunkEntry.first);
 
-        if (l_JobBudget == 0)
+    // Drain only a few dirty chunks each frame to smooth meshing work and avoid hitches.
+    while (l_JobBudget > 0)
+    {
+        glm::ivec3 l_ChunkCoordinate{};
+        if (!TryDequeueNearestDirtyChunk(l_ChunkCoordinate))
         {
             break;
         }
+
+        const auto it_Chunk = m_ActiveChunks.find(l_ChunkCoordinate);
+        if (it_Chunk == m_ActiveChunks.end())
+        {
+            // The chunk was unloaded before we processed it.
+            continue;
+        }
+
+        MeshChunkIfDirty(it_Chunk->second, l_JobBudget, l_ChunkCoordinate);
     }
 }
 
@@ -120,6 +133,8 @@ void World::MarkChunkDirty(const glm::ivec3& chunkCoordinate)
 
     // Flag the chunk so the next refresh pass will regenerate its mesh from cached block data.
     it_Chunk->second.m_IsDirty = true;
+
+    EnqueueDirtyChunk(chunkCoordinate);
 }
 
 void World::Shutdown()
@@ -153,6 +168,8 @@ void World::CreateChunkIfMissing(const glm::ivec3& chunkCoordinate, size_t& jobB
     }
 
     GAME_TRACE("Chunk placeholder created at ({}, {}, {}) and queued for worker build", chunkCoordinate.x, chunkCoordinate.y, chunkCoordinate.z);
+
+    EnqueueDirtyChunk(chunkCoordinate);
     QueueChunkBuild(chunkCoordinate, nullptr, jobBudget);
 }
 
@@ -211,6 +228,80 @@ void World::MeshChunkIfDirty(ActiveChunk& chunkData, size_t& jobBudget, const gl
     }
 
     QueueChunkBuild(chunkCoordinate, chunkData.m_Chunk, jobBudget);
+}
+
+void World::EnqueueDirtyChunk(const glm::ivec3& chunkCoordinate)
+{
+    if (m_DirtyChunkSet.find(chunkCoordinate) != m_DirtyChunkSet.end())
+    {
+        return;
+    }
+
+    const int l_NewDistance = CalculateManhattanDistance(chunkCoordinate, m_LastCenterChunkCoordinate);
+
+    if (m_DirtyChunkQueue.size() >= m_DirtyQueueCapacity)
+    {
+        // Replace the farthest queued chunk if the incoming work is closer to the camera.
+        auto it_Farthest = std::max_element(m_DirtyChunkQueue.begin(), m_DirtyChunkQueue.end(),
+            [this](const glm::ivec3& a, const glm::ivec3& b)
+            {
+                const int l_DistanceA = CalculateManhattanDistance(a, m_LastCenterChunkCoordinate);
+                const int l_DistanceB = CalculateManhattanDistance(b, m_LastCenterChunkCoordinate);
+                return l_DistanceA < l_DistanceB;
+            });
+
+        const int l_FarthestDistance = CalculateManhattanDistance(*it_Farthest, m_LastCenterChunkCoordinate);
+        if (l_NewDistance >= l_FarthestDistance)
+        {
+            // Drop distant work so near chunks complete faster when the buffer is saturated.
+            return;
+        }
+
+        m_DirtyChunkSet.erase(*it_Farthest);
+        *it_Farthest = chunkCoordinate;
+        m_DirtyChunkSet.insert(chunkCoordinate);
+        return;
+    }
+
+    m_DirtyChunkQueue.push_back(chunkCoordinate);
+    m_DirtyChunkSet.insert(chunkCoordinate);
+}
+
+bool World::TryDequeueNearestDirtyChunk(glm::ivec3& outChunkCoordinate)
+{
+    if (m_DirtyChunkQueue.empty())
+    {
+        return false;
+    }
+
+    // Pick the closest dirty chunk so we prioritize the player bubble and defer distant updates.
+    size_t l_BestIndex = 0;
+    int l_BestDistance = CalculateManhattanDistance(m_DirtyChunkQueue[0], m_LastCenterChunkCoordinate);
+
+    for (size_t l_Index = 1; l_Index < m_DirtyChunkQueue.size(); ++l_Index)
+    {
+        const int l_Distance = CalculateManhattanDistance(m_DirtyChunkQueue[l_Index], m_LastCenterChunkCoordinate);
+        if (l_Distance < l_BestDistance)
+        {
+            l_BestDistance = l_Distance;
+            l_BestIndex = l_Index;
+        }
+    }
+
+    outChunkCoordinate = m_DirtyChunkQueue[l_BestIndex];
+
+    // Remove the chosen chunk from the ring buffer by swapping with the tail for O(1) erase.
+    m_DirtyChunkQueue[l_BestIndex] = m_DirtyChunkQueue.back();
+    m_DirtyChunkQueue.pop_back();
+    m_DirtyChunkSet.erase(outChunkCoordinate);
+
+    return true;
+}
+
+int World::CalculateManhattanDistance(const glm::ivec3& a, const glm::ivec3& b) const
+{
+    const glm::ivec3 l_Delta = glm::abs(a - b);
+    return l_Delta.x + l_Delta.y + l_Delta.z;
 }
 
 void World::ProcessCompletedChunks()

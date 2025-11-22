@@ -66,6 +66,9 @@ private:
     void PopulateChunkBlocks(Chunk& chunk) const;
     void MeshChunkOnWorker(const ChunkBuildTask& task);
     void MeshChunkIfDirty(ActiveChunk& chunkData, size_t& jobBudget, const glm::ivec3& chunkCoordinate);
+    void EnqueueDirtyChunk(const glm::ivec3& chunkCoordinate);
+    bool TryDequeueNearestDirtyChunk(glm::ivec3& outChunkCoordinate);
+    int CalculateManhattanDistance(const glm::ivec3& a, const glm::ivec3& b) const;
     void ProcessCompletedChunks();
     bool QueueChunkBuild(const glm::ivec3& chunkCoordinate, const std::shared_ptr<Chunk>& existingChunk, size_t& jobBudget);
     void StartWorkerThread();
@@ -76,12 +79,16 @@ private:
     const Engine::Texture2D* m_Texture = nullptr;
     const WorldGenerator* m_WorldGenerator = nullptr;
     int m_RenderDistance = 2;
+    glm::ivec3 m_LastCenterChunkCoordinate{ 0 };
     std::unordered_map<glm::ivec3, ActiveChunk, IVec3Hasher> m_ActiveChunks;
     std::unordered_map<glm::ivec3, std::shared_ptr<Engine::Mesh>, IVec3Hasher> m_MeshPool;
     ThreadSafeQueue<ChunkBuildTask> m_ChunkBuildQueue;
     ThreadSafeQueue<ChunkBuildResult> m_CompletedChunkQueue;
     std::unordered_set<glm::ivec3, IVec3Hasher> m_PendingChunkCoordinates;
+    std::vector<glm::ivec3> m_DirtyChunkQueue;
+    std::unordered_set<glm::ivec3, IVec3Hasher> m_DirtyChunkSet;
     std::thread m_WorkerThread;
     std::atomic<bool> m_ShouldStop{ false };
     size_t m_MaxChunkJobsPerFrame = 2;
+    size_t m_DirtyQueueCapacity = 256;
 };
