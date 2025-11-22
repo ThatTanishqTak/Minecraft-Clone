@@ -16,6 +16,8 @@ public:
 
     void UpdateMesh(const std::shared_ptr<Engine::Mesh>& meshBuffer);
     void SetTexture(const Engine::Texture2D* texture) { m_Texture = texture; }
+    // Allow callers to check whether a GPU mesh is ready before issuing draw calls.
+    bool HasMesh() const { return m_Mesh != nullptr; }
     void Render(const glm::mat4& modelMatrix) const;
 
 private:

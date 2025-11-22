@@ -257,7 +257,8 @@ void GameLayer::Render()
             const glm::ivec3& l_ChunkCoordinate = it_ChunkEntry.first;
             const World::ActiveChunk& l_ActiveChunk = it_ChunkEntry.second;
 
-            if (l_ActiveChunk.m_Renderer != nullptr)
+            // Only render chunks that have received a mesh from the worker to avoid noisy warnings.
+            if (l_ActiveChunk.m_Renderer != nullptr && l_ActiveChunk.m_Renderer->HasMesh())
             {
                 const glm::vec3 l_ChunkOffset = glm::vec3{ l_ChunkCoordinate } *static_cast<float>(Chunk::CHUNK_SIZE);
                 const glm::mat4 l_Model = glm::translate(glm::mat4{ 1.0f }, l_ChunkOffset);
