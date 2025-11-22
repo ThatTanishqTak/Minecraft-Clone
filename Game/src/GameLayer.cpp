@@ -63,17 +63,17 @@ bool GameLayer::Initialize()
     const BlockTextureDefinition l_DirtTextures{ glm::ivec2{ 17, 17 }, glm::ivec2{ 17, 17 }, glm::ivec2{ 17, 17 } };
     const BlockTextureDefinition l_StoneTextures{ glm::ivec2{ 19, 14 }, glm::ivec2{ 19, 14 }, glm::ivec2{ 19, 14 } };
 
-    const auto a_RegisterBlockTextures = [this](BlockId blockId, const BlockTextureDefinition& textures)
+    const auto a_RegisterBlockTextures = [this](BlockId blockID, const BlockTextureDefinition& textures)
         {
             // Register top/bottom explicitly so the atlas lookup matches the requested face.
-            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::Top, textures.m_Top);
-            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::Bottom, textures.m_Bottom);
+            m_TextureAtlas->RegisterBlockFace(blockID, BlockFace::Top, textures.m_Top);
+            m_TextureAtlas->RegisterBlockFace(blockID, BlockFace::Bottom, textures.m_Bottom);
 
             // Sides all share a single tile to keep the definition concise.
-            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::North, textures.m_Side);
-            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::South, textures.m_Side);
-            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::East, textures.m_Side);
-            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::West, textures.m_Side);
+            m_TextureAtlas->RegisterBlockFace(blockID, BlockFace::North, textures.m_Side);
+            m_TextureAtlas->RegisterBlockFace(blockID, BlockFace::South, textures.m_Side);
+            m_TextureAtlas->RegisterBlockFace(blockID, BlockFace::East, textures.m_Side);
+            m_TextureAtlas->RegisterBlockFace(blockID, BlockFace::West, textures.m_Side);
         };
 
     a_RegisterBlockTextures(BlockId::Grass, l_GrassTextures);
@@ -93,7 +93,7 @@ bool GameLayer::Initialize()
     l_WorldGeneratorConfig.m_BiomeStrength = 4.0f;
     l_WorldGeneratorConfig.m_CaveFrequency = 0.07f;
     l_WorldGeneratorConfig.m_CaveThreshold = 0.22f;
-    l_WorldGeneratorConfig.m_EnableNoise = false; // Toggle to false for flat terrain when running deterministic threading tests.
+    l_WorldGeneratorConfig.m_EnableNoise = true; // Toggle to false for flat terrain when running deterministic threading tests.
 
     m_WorldGenerator = std::make_unique<WorldGenerator>(l_WorldGeneratorConfig);
 
