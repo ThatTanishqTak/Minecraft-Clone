@@ -8,6 +8,7 @@
 #include "Chunk.h"
 #include "ChunkMesher.h"
 #include "ChunkRenderer.h"
+#include "WorldGenerator.h"
 
 namespace Engine
 {
@@ -31,7 +32,7 @@ public:
     };
 
 public:
-    World(ChunkMesher* chunkMesher, const Engine::Texture2D* texture);
+    World(ChunkMesher* chunkMesher, const Engine::Texture2D* texture, const WorldGenerator* worldGenerator);
 
     void SetRenderDistance(int renderDistance);
     void UpdateActiveChunks(const glm::ivec3& centerChunkCoordinate);
@@ -41,8 +42,6 @@ public:
 
     void Shutdown();
 
-    static float SampleTerrainHeight(int worldX, int worldZ);
-
 private:
     void CreateChunkIfMissing(const glm::ivec3& chunkCoordinate);
     void PopulateChunkBlocks(Chunk& chunk) const;
@@ -51,6 +50,7 @@ private:
 private:
     ChunkMesher* m_ChunkMesher = nullptr;
     const Engine::Texture2D* m_Texture = nullptr;
+    const WorldGenerator* m_WorldGenerator = nullptr;
     int m_RenderDistance = 2;
     std::unordered_map<glm::ivec3, ActiveChunk, IVec3Hasher> m_ActiveChunks;
 };

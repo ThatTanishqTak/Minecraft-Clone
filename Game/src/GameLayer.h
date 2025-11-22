@@ -9,6 +9,7 @@
 #include "WorldGeneration/ChunkMesher.h"
 #include "WorldGeneration/TextureAtlas.h"
 #include "WorldGeneration/World.h"
+#include "WorldGeneration/WorldGenerator.h"
 
 #include <glm/glm.hpp>
 #include <memory>
@@ -58,5 +59,6 @@ private:
     glm::ivec3 m_CurrentCameraChunkCoordinate{ std::numeric_limits<int>::min() };
     std::unique_ptr<TextureAtlas> m_TextureAtlas;
     std::unique_ptr<ChunkMesher> m_ChunkMesher;
+    std::unique_ptr<WorldGenerator> m_WorldGenerator;
     std::unique_ptr<World> m_World;
 };

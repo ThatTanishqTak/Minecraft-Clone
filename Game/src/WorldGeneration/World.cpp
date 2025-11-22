@@ -1,7 +1,6 @@
 #include "World.h"
 
 #include <algorithm>
-#include <cmath>
 
 #include "Engine/Core/Log.h"
 #include "Engine/Renderer/Texture2D.h"
@@ -24,7 +23,8 @@ size_t World::IVec3Hasher::operator()(const glm::ivec3& key) const noexcept
     return l_Hash;
 }
 
-World::World(ChunkMesher* chunkMesher, const Engine::Texture2D* texture) : m_ChunkMesher(chunkMesher), m_Texture(texture)
+World::World(ChunkMesher* chunkMesher, const Engine::Texture2D* texture, const WorldGenerator* worldGenerator) : m_ChunkMesher(chunkMesher), m_Texture(texture), 
+    m_WorldGenerator(worldGenerator)
 {
     // The world streams chunks near the player to avoid simulating infinity. This constructor wires
     // meshing and texturing dependencies so new chunks can be generated immediately when requested.
@@ -90,14 +90,6 @@ void World::Shutdown()
     GAME_INFO("World shut down and all chunks released");
 }
 
-float World::SampleTerrainHeight(int worldX, int worldZ)
-{
-    const float l_Sample = std::sin(static_cast<float>(worldX) * 0.3f) + std::cos(static_cast<float>(worldZ) * 0.3f);
-    const float l_Height = 4.0f + l_Sample * 2.0f;
-
-    return l_Height;
-}
-
 void World::CreateChunkIfMissing(const glm::ivec3& chunkCoordinate)
 {
     if (m_ActiveChunks.find(chunkCoordinate) != m_ActiveChunks.end())
@@ -122,35 +114,23 @@ void World::CreateChunkIfMissing(const glm::ivec3& chunkCoordinate)
 
 void World::PopulateChunkBlocks(Chunk& chunk) const
 {
-    // Apply the height sampling formula in world space so neighboring chunks align seamlessly.
-    const glm::ivec3 l_WorldOffset = chunk.GetPosition() * Chunk::CHUNK_SIZE;
+    // Populate the chunk using the procedural generator; fall back to air when no generator is provided.
+    if (m_WorldGenerator == nullptr)
+    {
+        GAME_WARN("WorldGenerator missing; chunk at ({}, {}, {}) will remain empty", chunk.GetPosition().x, chunk.GetPosition().y, chunk.GetPosition().z);
+
+        return;
+    }
 
     for (int l_Z = 0; l_Z < Chunk::CHUNK_SIZE; ++l_Z)
     {
         for (int l_X = 0; l_X < Chunk::CHUNK_SIZE; ++l_X)
         {
-            const int l_WorldX = l_WorldOffset.x + l_X;
-            const int l_WorldZ = l_WorldOffset.z + l_Z;
-            const int l_SurfaceHeight = static_cast<int>(SampleTerrainHeight(l_WorldX, l_WorldZ));
+            const GeneratedColumn a_Column = m_WorldGenerator->GenerateColumn(chunk.GetPosition(), l_X, l_Z);
 
             for (int l_Y = 0; l_Y < Chunk::CHUNK_SIZE; ++l_Y)
             {
-                BlockId l_Block = BlockId::Air;
-
-                if (l_Y < l_SurfaceHeight - 2)
-                {
-                    l_Block = BlockId::Stone;
-                }
-                else if (l_Y < l_SurfaceHeight - 1)
-                {
-                    l_Block = BlockId::Dirt;
-                }
-                else if (l_Y == l_SurfaceHeight - 1)
-                {
-                    l_Block = BlockId::Grass;
-                }
-
-                chunk.SetBlock(l_X, l_Y, l_Z, l_Block);
+                chunk.SetBlock(l_X, l_Y, l_Z, a_Column.m_Blocks[l_Y]);
             }
         }
     }

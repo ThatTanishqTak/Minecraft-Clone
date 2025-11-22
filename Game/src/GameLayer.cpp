@@ -80,6 +80,22 @@ bool GameLayer::Initialize()
     a_RegisterBlockTextures(BlockId::Dirt, l_DirtTextures);
     a_RegisterBlockTextures(BlockId::Stone, l_StoneTextures);
 
+    // Build the chunk mesher now that the atlas is available so generated chunks can be rendered immediately.
+    m_ChunkMesher = std::make_unique<ChunkMesher>(m_TextureAtlas.get());
+
+    // Initialize world generation with deterministic parameters so terrain stays consistent between sessions.
+    WorldGeneratorConfig l_WorldGeneratorConfig{};
+    l_WorldGeneratorConfig.m_Seed = 20240601u;
+    l_WorldGeneratorConfig.m_BaseHeight = 10;
+    l_WorldGeneratorConfig.m_HeightAmplitude = 8;
+    l_WorldGeneratorConfig.m_HeightFrequency = 0.04f;
+    l_WorldGeneratorConfig.m_BiomeFrequency = 0.01f;
+    l_WorldGeneratorConfig.m_BiomeStrength = 4.0f;
+    l_WorldGeneratorConfig.m_CaveFrequency = 0.07f;
+    l_WorldGeneratorConfig.m_CaveThreshold = 0.22f;
+
+    m_WorldGenerator = std::make_unique<WorldGenerator>(l_WorldGeneratorConfig);
+
     // Position the camera above the highest generated terrain so the player spawns in open space.
     const float l_SpawnHeight = CalculateSpawnHeightAboveTerrain();
     m_CameraPosition.y = l_SpawnHeight;
@@ -93,7 +109,7 @@ bool GameLayer::Initialize()
     Engine::Renderer::SetCamera(m_Camera);
     GAME_TRACE("Camera primed for rendering with FOV {} degrees", m_CameraFieldOfViewDegrees);
 
-    m_World = std::make_unique<World>(m_ChunkMesher.get(), m_TextureAtlas->GetTexture());
+    m_World = std::make_unique<World>(m_ChunkMesher.get(), m_TextureAtlas->GetTexture(), m_WorldGenerator.get());
 
     // Keep only nearby chunks alive so the renderer and memory footprint stay lean.
     constexpr int l_DefaultRenderDistance = 2;
@@ -281,13 +297,18 @@ void GameLayer::Shutdown()
 float GameLayer::CalculateSpawnHeightAboveTerrain() const
 {
     // Mirror the procedural terrain generation to compute the highest block near the origin and float above it.
+    if (m_WorldGenerator == nullptr)
+    {
+        return static_cast<float>(Chunk::CHUNK_SIZE);
+    }
+
     float l_MaxHeight = 0.0f;
 
     for (int l_Z = 0; l_Z < Chunk::CHUNK_SIZE; ++l_Z)
     {
         for (int l_X = 0; l_X < Chunk::CHUNK_SIZE; ++l_X)
         {
-            const float l_Height = World::SampleTerrainHeight(l_X, l_Z);
+            const float l_Height = static_cast<float>(m_WorldGenerator->CalculateSurfaceHeight(l_X, l_Z));
             l_MaxHeight = std::max(l_MaxHeight, l_Height);
         }
     }
