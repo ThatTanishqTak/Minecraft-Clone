@@ -29,6 +29,9 @@ namespace Engine
         static void SetCamera(const Camera& camera);
         static void SetDirectionalLight(const glm::vec3& direction, const glm::vec3& color, float ambientStrength);
 
+        // Update the renderer to reflect a change in framebuffer size.
+        static void OnWindowResize(int width, int height);
+
         static Camera& GetCamera() { return s_Camera; }
 
     private:

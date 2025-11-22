@@ -226,6 +226,16 @@ namespace Engine
         // Cache input-centric events before forwarding to gameplay so query APIs stay coherent.
         Input::OnEvent(event);
 
+        // Update renderer state immediately when the framebuffer changes size so rendering stays aligned.
+        if (event.GetEventType() == EventType::WindowResize)
+        {
+            const WindowResizeEvent& l_ResizeEvent = static_cast<const WindowResizeEvent&>(event);
+            const int l_NewWidth = l_ResizeEvent.GetWidth();
+            const int l_NewHeight = l_ResizeEvent.GetHeight();
+
+            Renderer::OnWindowResize(l_NewWidth, l_NewHeight);
+        }
+
         // Safely forward the event to the gameplay layer when it exists and is ready.
         if (m_IsGameLayerInitialized && m_GameLayer != nullptr)
         {

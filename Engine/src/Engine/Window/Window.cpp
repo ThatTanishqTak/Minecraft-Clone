@@ -26,7 +26,8 @@ namespace Engine
         glfwSetWindowUserPointer(m_Window, this);
 
         // Register callbacks that translate GLFW events into engine events and forward them to the sink.
-        glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* windowHandle, int width, int height)
+        // Use the framebuffer size callback so the renderer receives pixel-accurate dimensions for the viewport.
+        glfwSetFramebufferSizeCallback(m_Window, [](GLFWwindow* windowHandle, int width, int height)
             {
                 Window* l_Window = static_cast<Window*>(glfwGetWindowUserPointer(windowHandle));
                 if (l_Window == nullptr || l_Window->m_EventCallback == nullptr)
@@ -35,7 +36,7 @@ namespace Engine
                 }
 
                 WindowResizeEvent l_Event(width, height);
-                ENGINE_TRACE("Window resized to {}x{}", width, height);
+                ENGINE_TRACE("Framebuffer resized to {}x{}", width, height);
                 l_Window->m_EventCallback(l_Event);
             });
 

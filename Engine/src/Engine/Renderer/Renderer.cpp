@@ -145,6 +145,26 @@ namespace Engine
         //ENGINE_TRACE("Directional light updated: dir ({}, {}, {}), color ({}, {}, {}), ambient {}", s_DirectionalLightDirection.x, s_DirectionalLightDirection.y, s_DirectionalLightDirection.z, s_DirectionalLightColor.r, s_DirectionalLightColor.g, s_DirectionalLightColor.b, s_AmbientStrength);
     }
 
+    void Renderer::OnWindowResize(int width, int height)
+    {
+        // Ignore spurious zero-sized events that may occur during minimization.
+        if (width <= 0 || height <= 0)
+        {
+            ENGINE_WARN("Renderer::OnWindowResize ignored non-positive viewport dimensions: {}x{}", width, height);
+
+            return;
+        }
+
+        // Refresh the OpenGL viewport so rendering uses the new framebuffer bounds.
+        RendererCommands::SetViewport(0, 0, width, height);
+
+        // Keep the internal camera projection in sync with the resized framebuffer.
+        s_Camera.SetViewportSize(static_cast<float>(width), static_cast<float>(height));
+
+        // Update the per-frame uniform buffer so dependent shaders receive the new projection immediately.
+        UpdatePerFrameBuffer();
+    }
+
     bool Renderer::CreatePerFrameBuffer()
     {
         glGenBuffers(1, &s_PerFrameUniformBuffer);
