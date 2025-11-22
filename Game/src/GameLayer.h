@@ -7,12 +7,13 @@
 
 #include "WorldGeneration/Chunk.h"
 #include "WorldGeneration/ChunkMesher.h"
-#include "WorldGeneration/ChunkRenderer.h"
 #include "WorldGeneration/TextureAtlas.h"
+#include "WorldGeneration/World.h"
 
 #include <glm/glm.hpp>
 #include <memory>
 #include <chrono>
+#include <limits>
 
 // GameLayer drives gameplay logic and rendering owned by the Game target.
 class GameLayer : public Engine::Layer
@@ -37,10 +38,8 @@ public:
     void Shutdown() override;
 
 private:
-    void GenerateTestChunk();
-    void RefreshChunkMesh();
-
     float CalculateSpawnHeightAboveTerrain() const;
+    glm::ivec3 CalculateChunkCoordinate(const glm::vec3& worldPosition) const;
 
 private:
     bool m_IsInitialized = false;
@@ -56,9 +55,8 @@ private:
     std::chrono::steady_clock::time_point m_LastFrameTimePoint{};
     float m_DeltaTimeSeconds = 0.0f;
 
-    std::unique_ptr<Chunk> m_Chunk;
+    glm::ivec3 m_CurrentCameraChunkCoordinate{ std::numeric_limits<int>::min() };
     std::unique_ptr<TextureAtlas> m_TextureAtlas;
     std::unique_ptr<ChunkMesher> m_ChunkMesher;
-    std::unique_ptr<ChunkRenderer> m_ChunkRenderer;
-    bool m_IsChunkDirty = false;
+    std::unique_ptr<World> m_World;
 };

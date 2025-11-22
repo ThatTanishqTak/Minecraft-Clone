@@ -93,14 +93,15 @@ bool GameLayer::Initialize()
     Engine::Renderer::SetCamera(m_Camera);
     GAME_TRACE("Camera primed for rendering with FOV {} degrees", m_CameraFieldOfViewDegrees);
 
-    m_Chunk = std::make_unique<Chunk>(glm::ivec3{ 0 });
-    m_ChunkMesher = std::make_unique<ChunkMesher>(m_TextureAtlas.get());
-    m_ChunkRenderer = std::make_unique<ChunkRenderer>();
-    m_ChunkRenderer->SetTexture(m_TextureAtlas->GetTexture());
-    GAME_TRACE("Chunk systems created and ready");
+    m_World = std::make_unique<World>(m_ChunkMesher.get(), m_TextureAtlas->GetTexture());
 
-    GenerateTestChunk();
-    RefreshChunkMesh();
+    // Keep only nearby chunks alive so the renderer and memory footprint stay lean.
+    constexpr int l_DefaultRenderDistance = 2;
+    m_World->SetRenderDistance(l_DefaultRenderDistance);
+    m_CurrentCameraChunkCoordinate = CalculateChunkCoordinate(m_CameraPosition);
+    m_World->UpdateActiveChunks(m_CurrentCameraChunkCoordinate);
+    m_World->RefreshChunkMeshes();
+    GAME_TRACE("World streaming initialized around chunk ({}, {}, {})", m_CurrentCameraChunkCoordinate.x, m_CurrentCameraChunkCoordinate.y, m_CurrentCameraChunkCoordinate.z);
 
     // Bind gameplay actions to common movement keys so Update() can translate intent into motion.
     Engine::Input::RegisterActionMapping("MoveForward", { GLFW_KEY_W });
@@ -136,13 +137,6 @@ void GameLayer::Update()
     m_LastFrameTimePoint = l_CurrentFrameTimePoint;
 
     //GAME_TRACE("Frame update started with delta time: {} seconds", m_DeltaTimeSeconds);
-
-    if (m_IsChunkDirty && m_ChunkMesher != nullptr)
-    {
-        // Rebuild the GPU mesh if blocks changed.
-        //GAME_TRACE("Chunk marked dirty, rebuilding mesh");
-        RefreshChunkMesh();
-    }
 
     // Demonstrate the new input API by polling both edge and hold state.
     const bool l_WasEscapePressed = Engine::Input::WasKeyPressedThisFrame(GLFW_KEY_ESCAPE);
@@ -216,6 +210,19 @@ void GameLayer::Update()
 
     // Sync the renderer's camera with updated transforms so the uniform buffer stays correct.
     Engine::Renderer::SetCamera(m_Camera);
+
+    // Stream chunks when the camera crosses chunk boundaries so only nearby data is loaded.
+    const glm::ivec3 l_NewCameraChunkCoordinate = CalculateChunkCoordinate(m_CameraPosition);
+    if (l_NewCameraChunkCoordinate != m_CurrentCameraChunkCoordinate && m_World != nullptr)
+    {
+        m_CurrentCameraChunkCoordinate = l_NewCameraChunkCoordinate;
+        m_World->UpdateActiveChunks(m_CurrentCameraChunkCoordinate);
+    }
+
+    if (m_World != nullptr)
+    {
+        m_World->RefreshChunkMeshes();
+    }
 }
 
 void GameLayer::Render()
@@ -226,11 +233,20 @@ void GameLayer::Render()
         return;
     }
 
-    if (m_ChunkRenderer != nullptr)
+    if (m_World != nullptr)
     {
-        // Draw the meshed chunk each frame.
-        m_ChunkRenderer->Render(glm::mat4{ 1.0f });
-        //GAME_TRACE("Rendered chunk with current texture atlas");
+        for (const auto& it_ChunkEntry : m_World->GetActiveChunks())
+        {
+            const glm::ivec3& l_ChunkCoordinate = it_ChunkEntry.first;
+            const World::ActiveChunk& l_ActiveChunk = it_ChunkEntry.second;
+
+            if (l_ActiveChunk.m_Renderer != nullptr)
+            {
+                const glm::vec3 l_ChunkOffset = glm::vec3{ l_ChunkCoordinate } *static_cast<float>(Chunk::CHUNK_SIZE);
+                const glm::mat4 l_Model = glm::translate(glm::mat4{ 1.0f }, l_ChunkOffset);
+                l_ActiveChunk.m_Renderer->Render(l_Model);
+            }
+        }
     }
 }
 
@@ -250,71 +266,28 @@ void GameLayer::Shutdown()
 
     GAME_INFO("Shutting down GameLayer and releasing resources");
 
-    m_ChunkRenderer.reset();
+    if (m_World != nullptr)
+    {
+        m_World->Shutdown();
+    }
+
+    m_World.reset();
     m_ChunkMesher.reset();
-    m_Chunk.reset();
     m_IsInitialized = false;
 
     GAME_INFO("GameLayer shutdown complete");
 }
 
-void GameLayer::GenerateTestChunk()
-{
-    if (m_Chunk == nullptr)
-    {
-        return;
-    }
-
-    GAME_TRACE("Generating test chunk data");
-
-    for (int z = 0; z < Chunk::CHUNK_SIZE; ++z)
-    {
-        for (int x = 0; x < Chunk::CHUNK_SIZE; ++x)
-        {
-            // Use a light wave to vary terrain height across the chunk.
-            const float l_Sample = std::sin(static_cast<float>(x) * 0.3f) + std::cos(static_cast<float>(z) * 0.3f);
-            const int l_Height = static_cast<int>(4 + l_Sample * 2.0f);
-
-            for (int y = 0; y < Chunk::CHUNK_SIZE; ++y)
-            {
-                BlockId l_Block = BlockId::Air;
-
-                if (y < l_Height - 2)
-                {
-                    l_Block = BlockId::Stone;
-                }
-                else if (y < l_Height - 1)
-                {
-                    l_Block = BlockId::Dirt;
-                }
-                else if (y == l_Height - 1)
-                {
-                    l_Block = BlockId::Grass;
-                }
-
-                m_Chunk->SetBlock(x, y, z, l_Block);
-            }
-        }
-    }
-
-    m_Chunk->RebuildVisibility();
-    m_IsChunkDirty = true;
-
-    GAME_TRACE("Chunk data generated and marked dirty for meshing");
-}
-
 float GameLayer::CalculateSpawnHeightAboveTerrain() const
 {
-    // Mirror the test terrain generation to compute the highest block and float above it.
+    // Mirror the procedural terrain generation to compute the highest block near the origin and float above it.
     float l_MaxHeight = 0.0f;
 
-    for (int z = 0; z < Chunk::CHUNK_SIZE; ++z)
+    for (int l_Z = 0; l_Z < Chunk::CHUNK_SIZE; ++l_Z)
     {
-        for (int x = 0; x < Chunk::CHUNK_SIZE; ++x)
+        for (int l_X = 0; l_X < Chunk::CHUNK_SIZE; ++l_X)
         {
-            const float l_Sample = std::sin(static_cast<float>(x) * 0.3f) + std::cos(static_cast<float>(z) * 0.3f);
-            const float l_Height = static_cast<float>(4 + l_Sample * 2.0f);
-
+            const float l_Height = World::SampleTerrainHeight(l_X, l_Z);
             l_MaxHeight = std::max(l_MaxHeight, l_Height);
         }
     }
@@ -325,20 +298,13 @@ float GameLayer::CalculateSpawnHeightAboveTerrain() const
     return l_SpawnHeight;
 }
 
-void GameLayer::RefreshChunkMesh()
+glm::ivec3 GameLayer::CalculateChunkCoordinate(const glm::vec3& worldPosition) const
 {
-    if (m_ChunkMesher == nullptr || m_ChunkRenderer == nullptr || m_Chunk == nullptr)
-    {
-        //GAME_WARN("RefreshChunkMesh called with missing components");
+    // Floor divides by chunk size so negative coordinates correctly map to chunk indices.
+    const float l_ChunkSize = static_cast<float>(Chunk::CHUNK_SIZE);
+    const int l_ChunkX = static_cast<int>(std::floor(worldPosition.x / l_ChunkSize));
+    const int l_ChunkY = static_cast<int>(std::floor(worldPosition.y / l_ChunkSize));
+    const int l_ChunkZ = static_cast<int>(std::floor(worldPosition.z / l_ChunkSize));
 
-        return;
-    }
-
-    const MeshedChunk l_MeshedChunk = m_ChunkMesher->Mesh(*m_Chunk);
-    //GAME_TRACE("Meshed chunk produced {} vertices and {} indices", l_MeshedChunk.m_Vertices.size(), l_MeshedChunk.m_Indices.size());
-
-    m_ChunkRenderer->UpdateMesh(l_MeshedChunk);
-    m_IsChunkDirty = false;
-
-    //GAME_INFO("Chunk mesh refreshed and uploaded to renderer");
+    return glm::ivec3{ l_ChunkX, l_ChunkY, l_ChunkZ };
 }

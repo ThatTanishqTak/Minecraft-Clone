@@ -32,13 +32,13 @@ void Chunk::RebuildVisibility()
     GAME_TRACE("Rebuilding visibility masks for chunk at ({}, {}, {})", m_Position.x, m_Position.y, m_Position.z);
 
     // Determine which faces are exposed by checking for air/out-of-bounds neighbors.
-    for (int l_Z = 0; l_Z < CHUNK_SIZE; ++l_Z)
+    for (int z = 0; z < CHUNK_SIZE; ++z)
     {
-        for (int l_Y = 0; l_Y < CHUNK_SIZE; ++l_Y)
+        for (int y = 0; y < CHUNK_SIZE; ++y)
         {
-            for (int l_X = 0; l_X < CHUNK_SIZE; ++l_X)
+            for (int x = 0; x < CHUNK_SIZE; ++x)
             {
-                const size_t l_Index = ToIndex(l_X, l_Y, l_Z);
+                const size_t l_Index = ToIndex(x, y, z);
                 const BlockId l_Block = m_BlockIds[l_Index];
                 if (l_Block == BlockId::Air)
                 {
@@ -50,9 +50,9 @@ void Chunk::RebuildVisibility()
 
                 auto l_CheckFace = [&](BlockFace face, int xOffset, int yOffset, int zOffset)
                     {
-                        const int l_NeighborX = l_X + xOffset;
-                        const int l_NeighborY = l_Y + yOffset;
-                        const int l_NeighborZ = l_Z + zOffset;
+                        const int l_NeighborX = x + xOffset;
+                        const int l_NeighborY = y + yOffset;
+                        const int l_NeighborZ = z + zOffset;
 
                         const bool l_HasNeighbor = IsInsideChunk(l_NeighborX, l_NeighborY, l_NeighborZ);
                         const BlockId l_NeighborBlock = l_HasNeighbor ? GetBlock(l_NeighborX, l_NeighborY, l_NeighborZ) : BlockId::Air;
