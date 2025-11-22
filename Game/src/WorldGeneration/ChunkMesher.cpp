@@ -181,10 +181,11 @@ void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection,
     BlockId blockID, BlockFace face, MeshedChunk& outMesh) const
 {
     // Generate four vertices forming a quad using supplied orientation vectors.
+    // Emit vertices in u-then-v order so the base winding follows u × v.
     const glm::vec3 l_P0 = origin;
-    const glm::vec3 l_P1 = origin + vDirection;
+    const glm::vec3 l_P1 = origin + uDirection;
     const glm::vec3 l_P2 = origin + uDirection + vDirection;
-    const glm::vec3 l_P3 = origin + uDirection;
+    const glm::vec3 l_P3 = origin + vDirection;
 
     // Prefer sampling the atlas whenever it is available. Fall back to flat colors when the
     // atlas is missing so rendering can continue during asset failures.
@@ -200,10 +201,10 @@ void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection,
 
     // Map UVs to the quad corners in winding order (P0 -> P1 -> P2 -> P3).
     const std::array<glm::vec2, 4> l_UVs = {
-        l_FaceUV.m_UV00,
-        l_FaceUV.m_UV01,
-        l_FaceUV.m_UV11,
-        l_FaceUV.m_UV10
+        l_FaceUV.m_UV00, // Origin
+        l_FaceUV.m_UV10, // +u
+        l_FaceUV.m_UV11, // +u +v
+        l_FaceUV.m_UV01  // +v
     };
 
     const std::array<Engine::Mesh::Vertex, 4> l_Vertices = {
@@ -216,7 +217,15 @@ void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection,
     const uint32_t l_StartIndex = static_cast<uint32_t>(outMesh.m_Vertices.size());
     outMesh.m_Vertices.insert(outMesh.m_Vertices.end(), l_Vertices.begin(), l_Vertices.end());
 
-    const std::array<uint32_t, 6> l_QuadIndices = {
+    // Ensure winding matches the outward normal; flip when u × v points opposite the normal.
+    const bool l_FlipWinding = glm::dot(glm::cross(uDirection, vDirection), normal) < 0.0f;
+
+    const std::array<uint32_t, 6> l_QuadIndices = l_FlipWinding
+        ? std::array<uint32_t, 6>{
+        l_StartIndex + 0, l_StartIndex + 2, l_StartIndex + 1,
+            l_StartIndex + 0, l_StartIndex + 3, l_StartIndex + 2
+    }
+    : std::array<uint32_t, 6>{
         l_StartIndex + 0, l_StartIndex + 1, l_StartIndex + 2,
         l_StartIndex + 2, l_StartIndex + 3, l_StartIndex + 0
     };
