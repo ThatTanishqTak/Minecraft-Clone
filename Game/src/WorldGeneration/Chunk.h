@@ -16,8 +16,8 @@ public:
 public:
     explicit Chunk(const glm::ivec3& position = glm::ivec3{ 0 });
 
-    void SetBlock(int x, int y, int z, BlockId blockID);
-    BlockId GetBlock(int x, int y, int z) const;
+    void SetBlock(int x, int y, int z, BlockID blockID);
+    BlockID GetBlock(int x, int y, int z) const;
 
     // Precompute which faces are visible so meshing can quickly skip occluded quads.
     void RebuildVisibility();
@@ -31,6 +31,6 @@ private:
 
 private:
     glm::ivec3 m_Position{ 0 };
-    std::array<BlockId, CHUNK_VOLUME> m_BlockIds{};
+    std::array<BlockID, CHUNK_VOLUME> m_BlockIDs{};
     std::array<uint8_t, CHUNK_VOLUME> m_VisibilityMasks{}; // Bitmask matching BlockFace order.
 };

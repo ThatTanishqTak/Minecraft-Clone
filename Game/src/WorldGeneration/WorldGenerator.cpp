@@ -80,6 +80,31 @@ bool WorldGenerator::IsCave(int worldX, int worldY, int worldZ) const
     return l_CaveNoise < m_Config.m_CaveThreshold;
 }
 
+bool WorldGenerator::ShouldPlaceTree(int worldX, int worldZ) const
+{
+    if (!m_Config.m_EnableNoise)
+    {
+        return false;
+    }
+
+    const float l_Frequency = m_Config.m_TreeFrequency;
+    if (l_Frequency <= 0.0f)
+    {
+        return false;
+    }
+
+    const float l_Noise = SamplePerlin(
+        static_cast<float>(worldX) * l_Frequency,
+        0.0f,
+        static_cast<float>(worldZ) * l_Frequency
+    );
+
+    // Map from [-1, 1] to [0, 1].
+    const float l_Normalized = 0.5f * (l_Noise + 1.0f);
+
+    return l_Normalized > m_Config.m_TreeThreshold;
+}
+
 GeneratedColumn WorldGenerator::GenerateColumn(const glm::ivec3& chunkCoordinate, int localX, int localZ) const
 {
     GeneratedColumn l_Column{};
@@ -91,7 +116,7 @@ GeneratedColumn WorldGenerator::GenerateColumn(const glm::ivec3& chunkCoordinate
     for (int l_LocalY = 0; l_LocalY < Chunk::CHUNK_SIZE; ++l_LocalY)
     {
         const int l_WorldY = chunkCoordinate.y * Chunk::CHUNK_SIZE + l_LocalY;
-        BlockId l_Block = BlockId::Air;
+        BlockID l_Block = BlockID::Air;
 
         if (l_WorldY <= l_Column.m_SurfaceHeight)
         {
@@ -99,15 +124,15 @@ GeneratedColumn WorldGenerator::GenerateColumn(const glm::ivec3& chunkCoordinate
             {
                 if (l_WorldY < l_Column.m_SurfaceHeight - m_Config.m_SoilDepth)
                 {
-                    l_Block = BlockId::Stone;
+                    l_Block = BlockID::Stone;
                 }
                 else if (l_WorldY < l_Column.m_SurfaceHeight)
                 {
-                    l_Block = BlockId::Dirt;
+                    l_Block = BlockID::Dirt;
                 }
                 else
                 {
-                    l_Block = BlockId::Grass;
+                    l_Block = BlockID::Grass;
                 }
             }
         }

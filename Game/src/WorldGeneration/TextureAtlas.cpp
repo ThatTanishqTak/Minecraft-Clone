@@ -23,7 +23,7 @@ bool TextureAtlas::Load(const std::string& filePath, const glm::ivec2& tileSize)
     return true;
 }
 
-void TextureAtlas::RegisterBlockFace(BlockId blockID, BlockFace face, const glm::ivec2& tileIndex)
+void TextureAtlas::RegisterBlockFace(BlockID blockID, BlockFace face, const glm::ivec2& tileIndex)
 {
     // Precompute UVs for each face to avoid per-vertex texture math during meshing.
     const glm::vec2 l_Texel = 1.0f / glm::vec2(m_TextureSize);
@@ -41,7 +41,7 @@ void TextureAtlas::RegisterBlockFace(BlockId blockID, BlockFace face, const glm:
     GAME_TRACE("Registered UVs for block {} face {} at tile ({}, {})", static_cast<int>(blockID), static_cast<int>(face), tileIndex.x, tileIndex.y);
 }
 
-BlockFaceUV TextureAtlas::GetFaceUVs(BlockId blockID, BlockFace face) const
+BlockFaceUV TextureAtlas::GetFaceUVs(BlockID blockID, BlockFace face) const
 {
     const auto l_FaceIt = m_BlockFaceUVs.find(blockID);
     if (l_FaceIt != m_BlockFaceUVs.end())

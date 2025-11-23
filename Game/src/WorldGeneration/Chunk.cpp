@@ -7,26 +7,26 @@
 Chunk::Chunk(const glm::ivec3& position) : m_Position(position)
 {
     // Default to air blocks to keep visibility calculations simple until blocks are placed.
-    m_BlockIds.fill(BlockId::Air);
+    m_BlockIDs.fill(BlockID::Air);
     m_VisibilityMasks.fill(0);
 
     // Previously traced every chunk creation; removed to avoid log spam.
     // GAME_TRACE("Chunk created at position ({}, {}, {})", m_Position.x, m_Position.y, m_Position.z);
 }
 
-void Chunk::SetBlock(int x, int y, int z, BlockId blockID)
+void Chunk::SetBlock(int x, int y, int z, BlockID blockID)
 {
     const size_t l_Index = ToIndex(x, y, z);
-    m_BlockIds[l_Index] = blockID;
+    m_BlockIDs[l_Index] = blockID;
 
     // This was being called for every block write in terrain gen, totally excessive.
     // GAME_TRACE("Block set at ({}, {}, {}) to id {}", x, y, z, static_cast<int>(blockID));
 }
 
-BlockId Chunk::GetBlock(int x, int y, int z) const
+BlockID Chunk::GetBlock(int x, int y, int z) const
 {
     const size_t l_Index = ToIndex(x, y, z);
-    return m_BlockIds[l_Index];
+    return m_BlockIDs[l_Index];
 }
 
 void Chunk::RebuildVisibility()
@@ -43,8 +43,8 @@ void Chunk::RebuildVisibility()
             for (int x = 0; x < CHUNK_SIZE; ++x)
             {
                 const size_t l_Index = ToIndex(x, y, z);
-                const BlockId l_Block = m_BlockIds[l_Index];
-                if (l_Block == BlockId::Air)
+                const BlockID l_Block = m_BlockIDs[l_Index];
+                if (l_Block == BlockID::Air)
                 {
                     m_VisibilityMasks[l_Index] = 0;
                     continue;
@@ -59,11 +59,11 @@ void Chunk::RebuildVisibility()
                         const int l_NeighborZ = z + zOffset;
 
                         const bool l_HasNeighbor = IsInsideChunk(l_NeighborX, l_NeighborY, l_NeighborZ);
-                        const BlockId l_NeighborBlock = l_HasNeighbor
+                        const BlockID l_NeighborBlock = l_HasNeighbor
                             ? GetBlock(l_NeighborX, l_NeighborY, l_NeighborZ)
-                            : BlockId::Air;
+                            : BlockID::Air;
 
-                        if (l_NeighborBlock == BlockId::Air)
+                        if (l_NeighborBlock == BlockID::Air)
                         {
                             l_Mask |= (1u << static_cast<uint8_t>(face));
                         }

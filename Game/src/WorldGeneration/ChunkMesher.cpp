@@ -38,7 +38,7 @@ void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk
 
     const int l_Size = Chunk::CHUNK_SIZE;
 
-    std::vector<BlockId> l_Mask(static_cast<size_t>(l_Size * l_Size), BlockId::Air);
+    std::vector<BlockID> l_Mask(static_cast<size_t>(l_Size * l_Size), BlockID::Air);
 
     for (int w = 0; w < l_Size; ++w)
     {
@@ -68,9 +68,9 @@ void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk
                     z = (face == BlockFace::North) ? w : l_Size - 1 - w;
                 }
 
-                const BlockId l_Block = chunk.GetBlock(x, y, z);
-                const bool l_IsVisible = l_Block != BlockId::Air && chunk.IsFaceVisible(x, y, z, face);
-                l_Mask[static_cast<size_t>(v * l_Size + u)] = l_IsVisible ? l_Block : BlockId::Air;
+                const BlockID l_Block = chunk.GetBlock(x, y, z);
+                const bool l_IsVisible = l_Block != BlockID::Air && chunk.IsFaceVisible(x, y, z, face);
+                l_Mask[static_cast<size_t>(v * l_Size + u)] = l_IsVisible ? l_Block : BlockID::Air;
             }
         }
 
@@ -80,8 +80,8 @@ void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk
             int u = 0;
             while (u < l_Size)
             {
-                const BlockId l_Current = l_Mask[static_cast<size_t>(v * l_Size + u)];
-                if (l_Current == BlockId::Air)
+                const BlockID l_Current = l_Mask[static_cast<size_t>(v * l_Size + u)];
+                if (l_Current == BlockID::Air)
                 {
                     ++u;
                     continue;
@@ -111,7 +111,7 @@ void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk
 
                 for (int l_CoverV = 0; l_CoverV < l_Height; ++l_CoverV)
                     for (int l_CoverU = 0; l_CoverU < l_Width; ++l_CoverU)
-                        l_Mask[static_cast<size_t>((v + l_CoverV) * l_Size + u + l_CoverU)] = BlockId::Air;
+                        l_Mask[static_cast<size_t>((v + l_CoverV) * l_Size + u + l_CoverU)] = BlockID::Air;
 
                 glm::vec3 l_Origin{}, l_UDirection{}, l_VDirection{}, l_Normal{};
 
@@ -166,31 +166,23 @@ void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk
     }
 }
 
-void ChunkMesher::EmitQuad(
-    const glm::vec3& origin,
-    const glm::vec3& uDirection,
-    const glm::vec3& vDirection,
-    const glm::vec3& normal,
-    BlockId blockID,
-    BlockFace face,
-    MeshedChunk& outMesh
-) const
+void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection, const glm::vec3& vDirection, const glm::vec3& normal,
+    BlockID blockID, BlockFace face, MeshedChunk& outMesh) const
 {
     const glm::vec3 l_P0 = origin;
     const glm::vec3 l_P1 = origin + uDirection;
     const glm::vec3 l_P2 = origin + uDirection + vDirection;
     const glm::vec3 l_P3 = origin + vDirection;
 
-    const bool l_HasAtlas = m_TextureAtlas &&
-        m_TextureAtlas->GetTexture() &&
-        m_TextureAtlas->GetTexture()->IsValid();
+    const bool l_HasAtlas = m_TextureAtlas && m_TextureAtlas->GetTexture() && m_TextureAtlas->GetTexture()->IsValid();
 
-    const glm::vec3 l_Color =
-        l_HasAtlas ? glm::vec3{ 1.0f } : GetFallbackBlockFaceColor(blockID, face);
+    const glm::vec3 l_Color = l_HasAtlas ? glm::vec3{ 1.0f } : GetFallbackBlockFaceColor(blockID, face);
 
     BlockFaceUV l_FaceUV{};
     if (l_HasAtlas)
+    {
         l_FaceUV = m_TextureAtlas->GetFaceUVs(blockID, face);
+    }
 
     const std::array<glm::vec2, 4> l_UVs = {
         l_FaceUV.m_UV00,
@@ -209,14 +201,11 @@ void ChunkMesher::EmitQuad(
     const uint32_t l_StartIndex = static_cast<uint32_t>(outMesh.m_Vertices.size());
     outMesh.m_Vertices.insert(outMesh.m_Vertices.end(), l_Vertices.begin(), l_Vertices.end());
 
-    const bool l_FlipWinding =
-        glm::dot(glm::cross(uDirection, vDirection), normal) < 0.0f;
+    const bool l_FlipWinding = glm::dot(glm::cross(uDirection, vDirection), normal) < 0.0f;
 
-    const std::array<uint32_t, 6> l_QuadIndices = l_FlipWinding
-        ? std::array<uint32_t, 6>{ l_StartIndex + 0, l_StartIndex + 2, l_StartIndex + 1,
-        l_StartIndex + 0, l_StartIndex + 3, l_StartIndex + 2 }
-    : std::array<uint32_t, 6>{ l_StartIndex + 0, l_StartIndex + 1, l_StartIndex + 2,
-                               l_StartIndex + 2, l_StartIndex + 3, l_StartIndex + 0 };
+    const std::array<uint32_t, 6> l_QuadIndices = l_FlipWinding ? std::array<uint32_t, 6>{ l_StartIndex + 0, l_StartIndex + 2, l_StartIndex + 1,
+        l_StartIndex + 0, l_StartIndex + 3, l_StartIndex + 2 } : std::array<uint32_t, 6>{ l_StartIndex + 0, l_StartIndex + 1, l_StartIndex + 2, 
+        l_StartIndex + 2, l_StartIndex + 3, l_StartIndex + 0 };
 
     outMesh.m_Indices.insert(outMesh.m_Indices.end(), l_QuadIndices.begin(), l_QuadIndices.end());
 
@@ -224,18 +213,22 @@ void ChunkMesher::EmitQuad(
     // GAME_TRACE("Emitted quad at origin ({}, {}, {})", origin.x, origin.y, origin.z);
 }
 
-glm::vec3 ChunkMesher::GetFallbackBlockFaceColor(BlockId blockID, BlockFace face) const
+glm::vec3 ChunkMesher::GetFallbackBlockFaceColor(BlockID blockID, BlockFace face) const
 {
-    const std::array<glm::vec3, 4> l_BaseColors = {
-        glm::vec3{0.0f},                // Air
-        glm::vec3{0.35f, 0.70f, 0.25f}, // Grass
-        glm::vec3{0.55f, 0.35f, 0.20f}, // Dirt
-        glm::vec3{0.55f, 0.55f, 0.55f}, // Stone
+    // One base color per BlockID. Keep this in sync with the BlockID enum.
+    const std::array<glm::vec3, 6> l_BaseColors = {
+        glm::vec3{ 0.0f, 0.0f, 0.0f },   // Air
+        glm::vec3{ 0.35f, 0.70f, 0.25f },// Grass
+        glm::vec3{ 0.55f, 0.35f, 0.20f },// Dirt
+        glm::vec3{ 0.55f, 0.55f, 0.55f },// Stone
+        glm::vec3{ 0.55f, 0.38f, 0.16f },// Log
+        glm::vec3{ 0.20f, 0.60f, 0.25f },// Leaves
     };
 
     const glm::vec3 l_BaseColor = l_BaseColors.at(static_cast<size_t>(blockID));
 
-    const std::array<glm::vec3, static_cast<size_t>(BlockFace::Count)> l_FaceTints = {
+    const std::array<glm::vec3, static_cast<size_t>(BlockFace::Count)> l_FaceTints =
+    {
         glm::vec3{1.00f}, // North
         glm::vec3{0.95f},
         glm::vec3{0.90f},
@@ -245,5 +238,6 @@ glm::vec3 ChunkMesher::GetFallbackBlockFaceColor(BlockId blockID, BlockFace face
     };
 
     const glm::vec3 l_Tint = l_FaceTints.at(static_cast<size_t>(face));
+
     return glm::clamp(l_BaseColor * l_Tint, glm::vec3{ 0.0f }, glm::vec3{ 1.0f });
 }

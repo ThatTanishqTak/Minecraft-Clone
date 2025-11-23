@@ -315,56 +315,193 @@ void World::PopulateChunkBlocks(Chunk& chunk) const
 {
     if (m_WorldGenerator == nullptr)
     {
-        GAME_WARN("WorldGenerator missing; chunk at ({}, {}, {}) will remain empty", chunk.GetPosition().x, chunk.GetPosition().y, chunk.GetPosition().z);
+        GAME_WARN("WorldGenerator missing; chunk at ({}, {}, {}) will remain empty",
+            chunk.GetPosition().x, chunk.GetPosition().y, chunk.GetPosition().z);
 
         return;
     }
 
     const glm::ivec3 l_Position = chunk.GetPosition();
+    const int l_ChunkBaseX = l_Position.x * Chunk::CHUNK_SIZE;
+    const int l_ChunkBaseY = l_Position.y * Chunk::CHUNK_SIZE;
+    const int l_ChunkBaseZ = l_Position.z * Chunk::CHUNK_SIZE;
+    const int l_ChunkTopWorldY = l_ChunkBaseY + Chunk::CHUNK_SIZE - 1;
+
     const WorldGeneratorConfig& l_Config = m_WorldGenerator->GetConfig();
 
+    struct TreeInstance
+    {
+        int m_WorldX = 0;
+        int m_WorldY = 0; // Trunk base world Y.
+        int m_WorldZ = 0;
+        int m_TrunkHeight = 0;
+    };
+
+    std::vector<TreeInstance> l_Trees;
+    l_Trees.reserve(8); // Few trees per chunk is expected.
+
+    const int l_TrunkHeight = 4;
+
+    // First pass: fill terrain with grass/dirt/stone/air + caves.
     for (int l_LocalZ = 0; l_LocalZ < Chunk::CHUNK_SIZE; ++l_LocalZ)
     {
+        const int l_WorldZ = l_ChunkBaseZ + l_LocalZ;
+
         for (int l_LocalX = 0; l_LocalX < Chunk::CHUNK_SIZE; ++l_LocalX)
         {
-            const int l_GlobalX = l_Position.x * Chunk::CHUNK_SIZE + l_LocalX;
-            const int l_GlobalZ = l_Position.z * Chunk::CHUNK_SIZE + l_LocalZ;
+            const int l_WorldX = l_ChunkBaseX + l_LocalX;
 
-            const int l_SurfaceHeight = m_WorldGenerator->CalculateSurfaceHeight(l_GlobalX, l_GlobalZ);
+            const int l_SurfaceHeight = m_WorldGenerator->CalculateSurfaceHeight(l_WorldX, l_WorldZ);
 
             for (int l_LocalY = 0; l_LocalY < Chunk::CHUNK_SIZE; ++l_LocalY)
             {
-                const int l_GlobalY = l_Position.y * Chunk::CHUNK_SIZE + l_LocalY;
+                const int l_WorldY = l_ChunkBaseY + l_LocalY;
 
-                // Default to air.
-                BlockId l_Block = BlockId::Air;
+                BlockID l_Block = BlockID::Air;
 
-                if (l_GlobalY <= l_SurfaceHeight)
+                if (l_WorldY <= l_SurfaceHeight)
                 {
-                    // Top block: grass.
-                    if (l_GlobalY == l_SurfaceHeight)
+                    if (l_WorldY == l_SurfaceHeight)
                     {
-                        l_Block = BlockId::Grass;
+                        l_Block = BlockID::Grass;
                     }
-                    // Soil layer below: dirt.
-                    else if (l_GlobalY >= l_SurfaceHeight - l_Config.m_SoilDepth)
+                    else if (l_WorldY >= l_SurfaceHeight - l_Config.m_SoilDepth)
                     {
-                        l_Block = BlockId::Dirt;
+                        l_Block = BlockID::Dirt;
                     }
-                    // Deeper: stone.
                     else
                     {
-                        l_Block = BlockId::Stone;
+                        l_Block = BlockID::Stone;
                     }
 
-                    // Carve caves if the generator says so.
-                    if (m_WorldGenerator->IsCave(l_GlobalX, l_GlobalY, l_GlobalZ))
+                    if (m_WorldGenerator->IsCave(l_WorldX, l_WorldY, l_WorldZ))
                     {
-                        l_Block = BlockId::Air;
+                        l_Block = BlockID::Air;
                     }
                 }
 
                 chunk.SetBlock(l_LocalX, l_LocalY, l_LocalZ, l_Block);
+            }
+
+            // Decide whether to anchor a tree on this column.
+
+            // Only if the surface is inside this chunk's vertical range.
+            if (l_SurfaceHeight < l_ChunkBaseY || l_SurfaceHeight > l_ChunkTopWorldY)
+            {
+                continue;
+            }
+
+            const int l_LocalSurfaceY = l_SurfaceHeight - l_ChunkBaseY;
+            const BlockID l_SurfaceBlock = chunk.GetBlock(l_LocalX, l_LocalSurfaceY, l_LocalZ);
+
+            // Trees only spawn on grass.
+            if (l_SurfaceBlock != BlockID::Grass)
+            {
+                continue;
+            }
+
+            // Avoid chunk edges so canopies do not get brutally sliced.
+            if (l_LocalX <= 1 || l_LocalX >= Chunk::CHUNK_SIZE - 2 ||
+                l_LocalZ <= 1 || l_LocalZ >= Chunk::CHUNK_SIZE - 2)
+            {
+                continue;
+            }
+
+            if (!m_WorldGenerator->ShouldPlaceTree(l_WorldX, l_WorldZ))
+            {
+                continue;
+            }
+
+            const int l_TrunkBaseWorldY = l_SurfaceHeight + 1;               // Trunk starts above the grass.
+            const int l_TrunkTopWorldY = l_TrunkBaseWorldY + l_TrunkHeight - 1;
+            const int l_CanopyTopWorldY = l_TrunkTopWorldY + 1;              // Leaves extend one block above trunk.
+
+            if (l_CanopyTopWorldY > l_ChunkTopWorldY)
+            {
+                // Skip trees that would extend into the chunk above to avoid cut-off trunks.
+                continue;
+            }
+
+            TreeInstance l_Tree{};
+            l_Tree.m_WorldX = l_WorldX;
+            l_Tree.m_WorldY = l_TrunkBaseWorldY;
+            l_Tree.m_WorldZ = l_WorldZ;
+            l_Tree.m_TrunkHeight = l_TrunkHeight;
+
+            l_Trees.push_back(l_Tree);
+        }
+    }
+
+    // Second pass: apply tree decorations (logs + leaves) on top of the terrain.
+    for (const TreeInstance& it_Tree : l_Trees)
+    {
+        const int l_LocalX = it_Tree.m_WorldX - l_ChunkBaseX;
+        const int l_LocalZ = it_Tree.m_WorldZ - l_ChunkBaseZ;
+        int l_TrunkBaseLocalY = it_Tree.m_WorldY - l_ChunkBaseY;
+        const int l_TrunkTopLocalY = l_TrunkBaseLocalY + it_Tree.m_TrunkHeight - 1;
+
+        if (l_LocalX < 0 || l_LocalX >= Chunk::CHUNK_SIZE ||
+            l_LocalZ < 0 || l_LocalZ >= Chunk::CHUNK_SIZE)
+        {
+            continue;
+        }
+
+        // Trunk: vertical column of logs.
+        for (int l_LocalY = l_TrunkBaseLocalY; l_LocalY <= l_TrunkTopLocalY; ++l_LocalY)
+        {
+            if (l_LocalY < 0 || l_LocalY >= Chunk::CHUNK_SIZE)
+            {
+                continue;
+            }
+
+            chunk.SetBlock(l_LocalX, l_LocalY, l_LocalZ, BlockID::Log);
+        }
+
+        // Simple canopy: roughly spherical-ish blob of leaves around the top.
+        const int l_CanopyBottomLocalY = l_TrunkTopLocalY - 1;
+        const int l_CanopyTopLocalY = l_TrunkTopLocalY + 1;
+
+        for (int l_LocalY = l_CanopyBottomLocalY; l_LocalY <= l_CanopyTopLocalY; ++l_LocalY)
+        {
+            if (l_LocalY < 0 || l_LocalY >= Chunk::CHUNK_SIZE)
+            {
+                continue;
+            }
+
+            for (int l_DeltaZ = -2; l_DeltaZ <= 2; ++l_DeltaZ)
+            {
+                for (int l_DeltaX = -2; l_DeltaX <= 2; ++l_DeltaX)
+                {
+                    const int l_NX = l_LocalX + l_DeltaX;
+                    const int l_NZ = l_LocalZ + l_DeltaZ;
+
+                    if (l_NX < 0 || l_NX >= Chunk::CHUNK_SIZE ||
+                        l_NZ < 0 || l_NZ >= Chunk::CHUNK_SIZE)
+                    {
+                        continue;
+                    }
+
+                    const int l_ManhattanRadius =
+                        (l_DeltaX >= 0 ? l_DeltaX : -l_DeltaX) +
+                        (l_DeltaZ >= 0 ? l_DeltaZ : -l_DeltaZ);
+
+                    // Keep the canopy reasonably rounded.
+                    if (l_ManhattanRadius > 3)
+                    {
+                        continue;
+                    }
+
+                    // Do not overwrite the trunk center with leaves at/below trunk top.
+                    if (l_DeltaX == 0 && l_DeltaZ == 0 && l_LocalY <= l_TrunkTopLocalY)
+                    {
+                        continue;
+                    }
+
+                    if (chunk.GetBlock(l_NX, l_LocalY, l_NZ) == BlockID::Air)
+                    {
+                        chunk.SetBlock(l_NX, l_LocalY, l_NZ, BlockID::Leaves);
+                    }
+                }
             }
         }
     }

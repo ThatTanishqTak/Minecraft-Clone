@@ -49,7 +49,7 @@ private:
     glm::vec3 m_CameraPosition{ 0.0f, 10.5f, 5.0f };
     float m_CameraYawDegrees = -90.0f;
     float m_CameraPitchDegrees = 0.0f;
-    float m_CameraFieldOfViewDegrees = 45.0f;
+    float m_CameraFieldOfViewDegrees = 60.0f;
     float m_CameraMoveSpeed = 15.0f;
     float m_MouseSensitivity = 0.1f;
 

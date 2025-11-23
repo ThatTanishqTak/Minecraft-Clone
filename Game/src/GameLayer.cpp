@@ -61,13 +61,9 @@ bool GameLayer::Initialize()
         glm::ivec2 m_Side{};
     };
 
-    // Chosen tiles:
-    //  - Grass top:   bright green turf tile
-    //  - Grass side:  grass-over-dirt tile (green top, brown lower)
-    //  - Dirt:        uniform brown earth
-    //  - Stone:       mid-grey stone
-    //
-    // All coordinates are (tileX, tileY).
+    // All coordinates are (tileX, tileY) in the 16x16 atlas grid.
+    // Adjust these to match your actual atlas layout if needed.
+
     const BlockTextureDefinition l_GrassTextures{
         glm::ivec2{ 16, 13 }, // top    - grass surface
         glm::ivec2{  9,  9 }, // bottom - plain dirt
@@ -86,22 +82,35 @@ bool GameLayer::Initialize()
         glm::ivec2{ 21, 0 }  // side
     };
 
-    const auto a_RegisterBlockTextures = [this](BlockId blockId, const BlockTextureDefinition& textures)
+    // Guessed coordinates for logs & leaves. Swap these for the correct tiles in your atlas.
+    const BlockTextureDefinition l_LogTextures{
+        glm::ivec2{ 4, 1 }, // top    - log cut
+        glm::ivec2{ 4, 1 }, // bottom - log cut
+        glm::ivec2{ 5, 1 }  // side   - bark
+    };
+
+    const BlockTextureDefinition l_LeavesTextures{
+        glm::ivec2{ 6, 1 }, // top
+        glm::ivec2{ 6, 1 }, // bottom
+        glm::ivec2{ 6, 1 }  // side
+    };
+
+    const auto a_RegisterBlockTextures = [this](BlockID blockId, const BlockTextureDefinition& textures)
         {
-            // Register top/bottom explicitly so the atlas lookup matches the requested face.
             m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::Top, textures.m_Top);
             m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::Bottom, textures.m_Bottom);
 
-            // Sides all share a single tile to keep the definition concise.
             m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::North, textures.m_Side);
             m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::South, textures.m_Side);
             m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::East, textures.m_Side);
             m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::West, textures.m_Side);
         };
 
-    a_RegisterBlockTextures(BlockId::Grass, l_GrassTextures);
-    a_RegisterBlockTextures(BlockId::Dirt, l_DirtTextures);
-    a_RegisterBlockTextures(BlockId::Stone, l_StoneTextures);
+    a_RegisterBlockTextures(BlockID::Grass, l_GrassTextures);
+    a_RegisterBlockTextures(BlockID::Dirt, l_DirtTextures);
+    a_RegisterBlockTextures(BlockID::Stone, l_StoneTextures);
+    a_RegisterBlockTextures(BlockID::Log, l_LogTextures);
+    a_RegisterBlockTextures(BlockID::Leaves, l_LeavesTextures);
 
     // Build the chunk mesher now that the atlas is available so generated chunks can be rendered immediately.
     m_ChunkMesher = std::make_unique<ChunkMesher>(m_TextureAtlas.get());
@@ -116,6 +125,8 @@ bool GameLayer::Initialize()
     l_WorldGeneratorConfig.m_BiomeStrength = 4.0f;
     l_WorldGeneratorConfig.m_CaveFrequency = 0.07f;
     l_WorldGeneratorConfig.m_CaveThreshold = 0.22f;
+    l_WorldGeneratorConfig.m_TreeFrequency = 0.035f; // tweak for density / clustering
+    l_WorldGeneratorConfig.m_TreeThreshold = 0.78f;  // tweak for more/fewer trees
     l_WorldGeneratorConfig.m_EnableNoise = true; // Toggle to false for flat terrain when running deterministic threading tests.
 
     m_WorldGenerator = std::make_unique<WorldGenerator>(l_WorldGeneratorConfig);

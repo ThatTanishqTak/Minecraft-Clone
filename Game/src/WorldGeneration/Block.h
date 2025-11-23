@@ -5,12 +5,14 @@
 #include <glm/glm.hpp>
 
 // Enumeration of block identifiers present in the sample chunk.
-enum class BlockId : uint8_t
+enum class BlockID : uint8_t
 {
     Air = 0,
     Grass,
     Dirt,
     Stone,
+    Log,
+    Leaves,
 };
 
 // Faces for a cube block used when calculating visibility and UVs.

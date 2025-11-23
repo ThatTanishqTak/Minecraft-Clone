@@ -18,6 +18,8 @@ struct WorldGeneratorConfig
     float m_CaveFrequency = 0.08f;
     float m_CaveThreshold = 0.18f;
     int m_SoilDepth = 3;
+    float m_TreeFrequency = 0.035f; // Spatial frequency of the tree mask.
+    float m_TreeThreshold = 0.78f;  // Higher -> fewer trees.
     bool m_EnableNoise = true; // Toggle to disable noise for deterministic flat worlds used during threading tests.
 };
 
@@ -25,7 +27,7 @@ struct WorldGeneratorConfig
 struct GeneratedColumn
 {
     int m_SurfaceHeight = 0;
-    std::array<BlockId, Chunk::CHUNK_SIZE> m_Blocks{};
+    std::array<BlockID, Chunk::CHUNK_SIZE> m_Blocks{};
 };
 
 // WorldGenerator produces reproducible terrain using seeded Perlin-like noise in 2D/3D space.
@@ -41,6 +43,8 @@ public:
 
     // Query whether a world-space position should be carved out as a cave.
     bool IsCave(int worldX, int worldY, int worldZ) const;
+    // Decide whether a tree should be placed at a given (x, z) column in world space.
+    bool ShouldPlaceTree(int worldX, int worldZ) const;
 
     // Generate a full vertical column of blocks for the requested chunk-local coordinate.
     // (Still available for any legacy callers; World now uses CalculateSurfaceHeight/IsCave directly.)
