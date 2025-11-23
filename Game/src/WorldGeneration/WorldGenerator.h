@@ -39,7 +39,11 @@ public:
     // Sample the terrain height in world space using the configured noise parameters.
     int CalculateSurfaceHeight(int worldX, int worldZ) const;
 
+    // Query whether a world-space position should be carved out as a cave.
+    bool IsCave(int worldX, int worldY, int worldZ) const;
+
     // Generate a full vertical column of blocks for the requested chunk-local coordinate.
+    // (Still available for any legacy callers; World now uses CalculateSurfaceHeight/IsCave directly.)
     GeneratedColumn GenerateColumn(const glm::ivec3& chunkCoordinate, int localX, int localZ) const;
 
 private:

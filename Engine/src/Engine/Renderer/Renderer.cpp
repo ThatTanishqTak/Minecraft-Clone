@@ -129,8 +129,12 @@ namespace Engine
         // Copy camera state from the gameplay layer so per-frame data matches gameplay intent.
         s_Camera = camera;
 
+        // Keep the per-frame uniform buffer in sync whenever gameplay updates the camera.
+        UpdatePerFrameBuffer();
+
         //ENGINE_TRACE("Renderer camera updated");
     }
+
 
     void Renderer::SetDirectionalLight(const glm::vec3& direction, const glm::vec3& color, float ambientStrength)
     {
@@ -158,8 +162,8 @@ namespace Engine
         // Keep the internal camera projection in sync with the resized framebuffer.
         s_Camera.SetViewportSize(static_cast<float>(width), static_cast<float>(height));
 
-        // Update the per-frame uniform buffer so dependent shaders receive the new projection immediately.
-        UpdatePerFrameBuffer();
+        // No need to update the per-frame uniform buffer here; it will be refreshed in BeginFrame
+        // and whenever gameplay updates the camera via Renderer::SetCamera.
     }
 
     bool Renderer::CreatePerFrameBuffer()

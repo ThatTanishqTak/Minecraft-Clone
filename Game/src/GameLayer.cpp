@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <chrono>
 #include <limits>
+#include <array>
 
 #include "Engine/Events/Events.h"
 #include "Engine/Core/Log.h"
@@ -48,10 +49,11 @@ bool GameLayer::Initialize()
         return false;
     }
 
-    // Map each block to the correct tile coordinates for the provided 32x32 atlas grid. The
-    // previous placeholder atlas used the first few tiles for every block, which left the new
-    // atlas sampling the wrong pixels. Here we point the faces at the correct tiles taken from
-    // the supplied atlas image so the generated chunk uses the intended artwork.
+    // The atlas is 384x416 with 16x16 tiles:
+    //  - 24 columns  (x: 0..23)
+    //  - 26 rows     (y: 0..25)
+    //
+    // Tile indices are 0-based, (0, 0) is the top-left tile of the atlas.
     struct BlockTextureDefinition
     {
         glm::ivec2 m_Top{};
@@ -59,21 +61,42 @@ bool GameLayer::Initialize()
         glm::ivec2 m_Side{};
     };
 
-    const BlockTextureDefinition l_GrassTextures{ glm::ivec2{ 10, 0 }, glm::ivec2{ 17, 17 }, glm::ivec2{ 10, 1 } };
-    const BlockTextureDefinition l_DirtTextures{ glm::ivec2{ 17, 17 }, glm::ivec2{ 17, 17 }, glm::ivec2{ 17, 17 } };
-    const BlockTextureDefinition l_StoneTextures{ glm::ivec2{ 19, 14 }, glm::ivec2{ 19, 14 }, glm::ivec2{ 19, 14 } };
+    // Chosen tiles:
+    //  - Grass top:   bright green turf tile
+    //  - Grass side:  grass-over-dirt tile (green top, brown lower)
+    //  - Dirt:        uniform brown earth
+    //  - Stone:       mid-grey stone
+    //
+    // All coordinates are (tileX, tileY).
+    const BlockTextureDefinition l_GrassTextures{
+        glm::ivec2{ 16, 13 }, // top    - grass surface
+        glm::ivec2{  9,  9 }, // bottom - plain dirt
+        glm::ivec2{  2, 12 }  // side   - grass over dirt
+    };
 
-    const auto a_RegisterBlockTextures = [this](BlockId blockID, const BlockTextureDefinition& textures)
+    const BlockTextureDefinition l_DirtTextures{
+        glm::ivec2{ 9, 9 }, // top
+        glm::ivec2{ 9, 9 }, // bottom
+        glm::ivec2{ 9, 9 }  // side
+    };
+
+    const BlockTextureDefinition l_StoneTextures{
+        glm::ivec2{ 21, 0 }, // top
+        glm::ivec2{ 21, 0 }, // bottom
+        glm::ivec2{ 21, 0 }  // side
+    };
+
+    const auto a_RegisterBlockTextures = [this](BlockId blockId, const BlockTextureDefinition& textures)
         {
             // Register top/bottom explicitly so the atlas lookup matches the requested face.
-            m_TextureAtlas->RegisterBlockFace(blockID, BlockFace::Top, textures.m_Top);
-            m_TextureAtlas->RegisterBlockFace(blockID, BlockFace::Bottom, textures.m_Bottom);
+            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::Top, textures.m_Top);
+            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::Bottom, textures.m_Bottom);
 
             // Sides all share a single tile to keep the definition concise.
-            m_TextureAtlas->RegisterBlockFace(blockID, BlockFace::North, textures.m_Side);
-            m_TextureAtlas->RegisterBlockFace(blockID, BlockFace::South, textures.m_Side);
-            m_TextureAtlas->RegisterBlockFace(blockID, BlockFace::East, textures.m_Side);
-            m_TextureAtlas->RegisterBlockFace(blockID, BlockFace::West, textures.m_Side);
+            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::North, textures.m_Side);
+            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::South, textures.m_Side);
+            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::East, textures.m_Side);
+            m_TextureAtlas->RegisterBlockFace(blockId, BlockFace::West, textures.m_Side);
         };
 
     a_RegisterBlockTextures(BlockId::Grass, l_GrassTextures);
@@ -228,16 +251,13 @@ void GameLayer::Update()
     // Sync the renderer's camera with updated transforms so the uniform buffer stays correct.
     Engine::Renderer::SetCamera(m_Camera);
 
-    // Stream chunks when the camera crosses chunk boundaries so only nearby data is loaded.
-    const glm::ivec3 l_NewCameraChunkCoordinate = CalculateChunkCoordinate(m_CameraPosition);
-    if (l_NewCameraChunkCoordinate != m_CurrentCameraChunkCoordinate && m_World != nullptr)
-    {
-        m_CurrentCameraChunkCoordinate = l_NewCameraChunkCoordinate;
-        m_World->UpdateActiveChunks(m_CurrentCameraChunkCoordinate);
-    }
-
+    // Stream chunks and process meshing every frame with a bounded budget inside World.
     if (m_World != nullptr)
     {
+        const glm::ivec3 l_NewCameraChunkCoordinate = CalculateChunkCoordinate(m_CameraPosition);
+        m_CurrentCameraChunkCoordinate = l_NewCameraChunkCoordinate;
+
+        m_World->UpdateActiveChunks(m_CurrentCameraChunkCoordinate);
         m_World->RefreshChunkMeshes();
     }
 }
@@ -250,23 +270,80 @@ void GameLayer::Render()
         return;
     }
 
-    if (m_World != nullptr)
+    if (m_World == nullptr)
     {
-        for (const auto& it_ChunkEntry : m_World->GetActiveChunks())
-        {
-            const glm::ivec3& l_ChunkCoordinate = it_ChunkEntry.first;
-            const World::ActiveChunk& l_ActiveChunk = it_ChunkEntry.second;
+        return;
+    }
 
-            // Only render chunks that have received a mesh from the worker to avoid noisy warnings.
-            if (l_ActiveChunk.m_Renderer != nullptr && l_ActiveChunk.m_Renderer->HasMesh())
+    // Precompute view-projection for frustum tests.
+    const glm::mat4 l_ViewProjection = m_Camera.GetProjectionMatrix() * m_Camera.GetViewMatrix();
+
+    auto a_IsChunkVisible = [&l_ViewProjection](const glm::ivec3& chunkCoord) -> bool
+        {
+            const float l_ChunkSize = static_cast<float>(Chunk::CHUNK_SIZE);
+
+            const glm::vec3 l_Min = glm::vec3(chunkCoord) * l_ChunkSize;
+            const glm::vec3 l_Max = l_Min + glm::vec3(l_ChunkSize);
+
+            std::array<glm::vec3, 8> l_Corners =
             {
-                const glm::vec3 l_ChunkOffset = glm::vec3{ l_ChunkCoordinate } *static_cast<float>(Chunk::CHUNK_SIZE);
-                const glm::mat4 l_Model = glm::translate(glm::mat4{ 1.0f }, l_ChunkOffset);
-                l_ActiveChunk.m_Renderer->Render(l_Model);
+                glm::vec3{ l_Min.x, l_Min.y, l_Min.z },
+                glm::vec3{ l_Max.x, l_Min.y, l_Min.z },
+                glm::vec3{ l_Min.x, l_Max.y, l_Min.z },
+                glm::vec3{ l_Max.x, l_Max.y, l_Min.z },
+                glm::vec3{ l_Min.x, l_Min.y, l_Max.z },
+                glm::vec3{ l_Max.x, l_Min.y, l_Max.z },
+                glm::vec3{ l_Min.x, l_Max.y, l_Max.z },
+                glm::vec3{ l_Max.x, l_Max.y, l_Max.z }
+            };
+
+            bool l_AllLeft = true;
+            bool l_AllRight = true;
+            bool l_AllBottom = true;
+            bool l_AllTop = true;
+            bool l_AllNear = true;
+            bool l_AllFar = true;
+
+            for (const glm::vec3& l_Corner : l_Corners)
+            {
+                const glm::vec4 l_Clip = l_ViewProjection * glm::vec4(l_Corner, 1.0f);
+
+                l_AllLeft &= (l_Clip.x < -l_Clip.w);
+                l_AllRight &= (l_Clip.x > l_Clip.w);
+                l_AllBottom &= (l_Clip.y < -l_Clip.w);
+                l_AllTop &= (l_Clip.y > l_Clip.w);
+                l_AllNear &= (l_Clip.z < -l_Clip.w);
+                l_AllFar &= (l_Clip.z > l_Clip.w);
             }
+
+            // If all corners are outside any single clip plane, the chunk is invisible.
+            const bool l_IsOutside = l_AllLeft || l_AllRight || l_AllBottom || l_AllTop || l_AllNear || l_AllFar;
+
+            return !l_IsOutside;
+        };
+
+    for (const auto& it_ChunkEntry : m_World->GetActiveChunks())
+    {
+        const glm::ivec3& l_ChunkCoordinate = it_ChunkEntry.first;
+        const World::ActiveChunk& l_ActiveChunk = it_ChunkEntry.second;
+
+        if (l_ActiveChunk.m_Renderer == nullptr)
+        {
+            continue;
         }
+
+        // Quick cull before building matrices or submitting draw calls.
+        if (!a_IsChunkVisible(l_ChunkCoordinate))
+        {
+            continue;
+        }
+
+        const glm::vec3 l_ChunkOffset = glm::vec3{ l_ChunkCoordinate } *static_cast<float>(Chunk::CHUNK_SIZE);
+        const glm::mat4 l_Model = glm::translate(glm::mat4{ 1.0f }, l_ChunkOffset);
+        l_ActiveChunk.m_Renderer->Render(l_Model);
     }
 }
+
 
 void GameLayer::OnEvent(const Engine::Event& event)
 {

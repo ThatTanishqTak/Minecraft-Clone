@@ -22,12 +22,17 @@ WorldGenerator::WorldGenerator(WorldGeneratorConfig config) : m_Config(config)
         m_Permutations[it_Index + l_BasePermutation.size()] = l_BasePermutation[it_Index];
     }
 
-    // Previously logged initialization at INFO level; removed to keep logs focused on higher-level systems.
-    // GAME_INFO("WorldGenerator initialized with seed {} and base height {}", m_Config.m_Seed, m_Config.m_BaseHeight);
+    // GAME_INFO removed earlier to avoid noisy logs.
 }
 
 int WorldGenerator::CalculateSurfaceHeight(int worldX, int worldZ) const
 {
+    // Flat world mode for debugging / threading tests.
+    if (!m_Config.m_EnableNoise)
+    {
+        return std::max(1, m_Config.m_BaseHeight);
+    }
+
     const float l_ScaledX = static_cast<float>(worldX) * m_Config.m_HeightFrequency;
     const float l_ScaledZ = static_cast<float>(worldZ) * m_Config.m_HeightFrequency;
 
@@ -50,6 +55,31 @@ int WorldGenerator::CalculateSurfaceHeight(int worldX, int worldZ) const
     return std::max(1, l_SurfaceHeight);
 }
 
+bool WorldGenerator::IsCave(int worldX, int worldY, int worldZ) const
+{
+    if (!m_Config.m_EnableNoise)
+    {
+        return false;
+    }
+
+    const int l_SurfaceHeight = CalculateSurfaceHeight(worldX, worldZ);
+
+    // Do not carve caves at or above the surface.
+    if (worldY >= l_SurfaceHeight - 1)
+    {
+        return false;
+    }
+
+    const float l_CaveFrequency = m_Config.m_CaveFrequency;
+    const float l_CaveNoise = std::abs(SamplePerlin(
+        static_cast<float>(worldX) * l_CaveFrequency,
+        static_cast<float>(worldY) * l_CaveFrequency,
+        static_cast<float>(worldZ) * l_CaveFrequency
+    ));
+
+    return l_CaveNoise < m_Config.m_CaveThreshold;
+}
+
 GeneratedColumn WorldGenerator::GenerateColumn(const glm::ivec3& chunkCoordinate, int localX, int localZ) const
 {
     GeneratedColumn l_Column{};
@@ -58,8 +88,6 @@ GeneratedColumn WorldGenerator::GenerateColumn(const glm::ivec3& chunkCoordinate
     const int l_WorldZ = chunkCoordinate.z * Chunk::CHUNK_SIZE + localZ;
     l_Column.m_SurfaceHeight = CalculateSurfaceHeight(l_WorldX, l_WorldZ);
 
-    const float l_CaveFrequency = m_Config.m_CaveFrequency;
-
     for (int l_LocalY = 0; l_LocalY < Chunk::CHUNK_SIZE; ++l_LocalY)
     {
         const int l_WorldY = chunkCoordinate.y * Chunk::CHUNK_SIZE + l_LocalY;
@@ -67,16 +95,7 @@ GeneratedColumn WorldGenerator::GenerateColumn(const glm::ivec3& chunkCoordinate
 
         if (l_WorldY <= l_Column.m_SurfaceHeight)
         {
-            // Use 3D noise to carve caves beneath the surface while preserving topsoil and grass.
-            const float l_CaveNoise = std::abs(SamplePerlin(
-                static_cast<float>(l_WorldX) * l_CaveFrequency,
-                static_cast<float>(l_WorldY) * l_CaveFrequency,
-                static_cast<float>(l_WorldZ) * l_CaveFrequency
-            ));
-            const bool l_IsOpenCave =
-                l_CaveNoise < m_Config.m_CaveThreshold && l_WorldY < l_Column.m_SurfaceHeight - 1;
-
-            if (!l_IsOpenCave)
+            if (!IsCave(l_WorldX, l_WorldY, l_WorldZ))
             {
                 if (l_WorldY < l_Column.m_SurfaceHeight - m_Config.m_SoilDepth)
                 {

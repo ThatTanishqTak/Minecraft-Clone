@@ -36,7 +36,7 @@ namespace Engine
                 }
 
                 WindowResizeEvent l_Event(width, height);
-                ENGINE_TRACE("Framebuffer resized to {}x{}", width, height);
+                //ENGINE_TRACE("Framebuffer resized to {}x{}", width, height);
                 l_Window->m_EventCallback(l_Event);
             });
 
@@ -49,7 +49,7 @@ namespace Engine
                 }
 
                 WindowCloseEvent l_Event;
-                ENGINE_TRACE("Window close requested");
+                //ENGINE_TRACE("Window close requested");
                 l_Window->m_EventCallback(l_Event);
             });
 
@@ -65,19 +65,19 @@ namespace Engine
                 if (action == GLFW_PRESS)
                 {
                     KeyPressedEvent l_Event(key, 0);
-                    ENGINE_TRACE("Key {} pressed", key);
+                    //ENGINE_TRACE("Key {} pressed", key);
                     l_Window->m_EventCallback(l_Event);
                 }
                 else if (action == GLFW_RELEASE)
                 {
                     KeyReleasedEvent l_Event(key);
-                    ENGINE_TRACE("Key {} released", key);
+                    //ENGINE_TRACE("Key {} released", key);
                     l_Window->m_EventCallback(l_Event);
                 }
                 else if (action == GLFW_REPEAT)
                 {
                     KeyPressedEvent l_Event(key, 1);
-                    ENGINE_TRACE("Key {} repeated", key);
+                    //ENGINE_TRACE("Key {} repeated", key);
                     l_Window->m_EventCallback(l_Event);
                 }
             });
@@ -91,7 +91,7 @@ namespace Engine
                 }
 
                 MouseMovedEvent l_Event(static_cast<float>(xPosition), static_cast<float>(yPosition));
-                ENGINE_TRACE("Mouse moved to ({}, {})", xPosition, yPosition);
+                //ENGINE_TRACE("Mouse moved to ({}, {})", xPosition, yPosition);
                 l_Window->m_EventCallback(l_Event);
             });
 
@@ -106,13 +106,13 @@ namespace Engine
                 if (action == GLFW_PRESS)
                 {
                     MouseButtonPressedEvent l_Event(button);
-                    ENGINE_TRACE("Mouse button {} pressed", button);
+                    //ENGINE_TRACE("Mouse button {} pressed", button);
                     l_Window->m_EventCallback(l_Event);
                 }
                 else if (action == GLFW_RELEASE)
                 {
                     MouseButtonReleasedEvent l_Event(button);
-                    ENGINE_TRACE("Mouse button {} released", button);
+                    //ENGINE_TRACE("Mouse button {} released", button);
                     l_Window->m_EventCallback(l_Event);
                 }
             });
@@ -126,7 +126,7 @@ namespace Engine
                 }
 
                 MouseScrolledEvent l_Event(static_cast<float>(xOffset), static_cast<float>(yOffset));
-                ENGINE_TRACE("Mouse scrolled by ({}, {})", xOffset, yOffset);
+                //ENGINE_TRACE("Mouse scrolled by ({}, {})", xOffset, yOffset);
                 l_Window->m_EventCallback(l_Event);
             });
 
