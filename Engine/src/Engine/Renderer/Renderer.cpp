@@ -68,12 +68,9 @@ namespace Engine
     {
         //ENGINE_TRACE("Renderer::BeginFrame - preparing render state");
 
-        // Sync projection with the framebuffer to avoid stretching when windows are resized.
-        GLint l_Viewport[4] = { 0, 0, 0, 0 };
-        glGetIntegerv(GL_VIEWPORT, l_Viewport);
-        RendererCommands::SetViewport(l_Viewport[0], l_Viewport[1], l_Viewport[2], l_Viewport[3]);
-
-        s_Camera.SetViewportSize(static_cast<float>(l_Viewport[2]), static_cast<float>(l_Viewport[3]));
+        // Per-frame GPU state (view, projection, lighting) is derived from the current camera
+        // and light parameters. The viewport and camera aspect ratio are kept in sync via
+        // Renderer::OnWindowResize, so there is no need to query GL_VIEWPORT every frame.
         UpdatePerFrameBuffer();
 
         // Establish deterministic render state every frame.

@@ -22,17 +22,12 @@ WorldGenerator::WorldGenerator(WorldGeneratorConfig config) : m_Config(config)
         m_Permutations[it_Index + l_BasePermutation.size()] = l_BasePermutation[it_Index];
     }
 
-    GAME_INFO("WorldGenerator initialized with seed {} and base height {}", m_Config.m_Seed, m_Config.m_BaseHeight);
+    // Previously logged initialization at INFO level; removed to keep logs focused on higher-level systems.
+    // GAME_INFO("WorldGenerator initialized with seed {} and base height {}", m_Config.m_Seed, m_Config.m_BaseHeight);
 }
 
 int WorldGenerator::CalculateSurfaceHeight(int worldX, int worldZ) const
 {
-    // Short-circuit noise when flat terrain is requested so multithreaded generation can be validated deterministically.
-    if (!m_Config.m_EnableNoise)
-    {
-        return std::clamp(m_Config.m_BaseHeight, 0, Chunk::CHUNK_SIZE - 1);
-    }
-
     const float l_ScaledX = static_cast<float>(worldX) * m_Config.m_HeightFrequency;
     const float l_ScaledZ = static_cast<float>(worldZ) * m_Config.m_HeightFrequency;
 
@@ -40,12 +35,18 @@ int WorldGenerator::CalculateSurfaceHeight(int worldX, int worldZ) const
     const float l_ElevationNoise = SamplePerlin(l_ScaledX, 0.0f, l_ScaledZ);
 
     // A low-frequency biome noise gently warps hills and valleys to avoid a flat monotone landscape.
-    const float l_BiomeNoise = SamplePerlin(static_cast<float>(worldX) * m_Config.m_BiomeFrequency, 0.0f, static_cast<float>(worldZ) * m_Config.m_BiomeFrequency);
+    const float l_BiomeNoise = SamplePerlin(
+        static_cast<float>(worldX) * m_Config.m_BiomeFrequency,
+        0.0f,
+        static_cast<float>(worldZ) * m_Config.m_BiomeFrequency
+    );
     const float l_BiomeOffset = l_BiomeNoise * m_Config.m_BiomeStrength;
 
-    const float l_Height = static_cast<float>(m_Config.m_BaseHeight) + l_BiomeOffset + l_ElevationNoise * static_cast<float>(m_Config.m_HeightAmplitude);
-    const int l_SurfaceHeight = static_cast<int>(std::round(l_Height));
+    const float l_Height = static_cast<float>(m_Config.m_BaseHeight) +
+        l_BiomeOffset +
+        l_ElevationNoise * static_cast<float>(m_Config.m_HeightAmplitude);
 
+    const int l_SurfaceHeight = static_cast<int>(std::round(l_Height));
     return std::max(1, l_SurfaceHeight);
 }
 
@@ -57,41 +58,6 @@ GeneratedColumn WorldGenerator::GenerateColumn(const glm::ivec3& chunkCoordinate
     const int l_WorldZ = chunkCoordinate.z * Chunk::CHUNK_SIZE + localZ;
     l_Column.m_SurfaceHeight = CalculateSurfaceHeight(l_WorldX, l_WorldZ);
 
-    // When noise is disabled, build a predictable stack (stone ? dirt ? grass) and skip cave carving entirely.
-    if (!m_Config.m_EnableNoise)
-    {
-        const int l_WorldBottom = chunkCoordinate.y * Chunk::CHUNK_SIZE;
-        const int l_WorldTop = l_WorldBottom + Chunk::CHUNK_SIZE - 1;
-        l_Column.m_SurfaceHeight = std::clamp(m_Config.m_BaseHeight, l_WorldBottom, l_WorldTop);
-
-        for (int l_LocalY = 0; l_LocalY < Chunk::CHUNK_SIZE; ++l_LocalY)
-        {
-            const int l_WorldY = l_WorldBottom + l_LocalY;
-            BlockId l_Block = BlockId::Air;
-
-            if (l_WorldY <= l_Column.m_SurfaceHeight)
-            {
-                // Preserve the same soil layering without invoking per-column noise to keep the path deterministic.
-                if (l_WorldY < l_Column.m_SurfaceHeight - m_Config.m_SoilDepth)
-                {
-                    l_Block = BlockId::Stone;
-                }
-                else if (l_WorldY < l_Column.m_SurfaceHeight)
-                {
-                    l_Block = BlockId::Dirt;
-                }
-                else
-                {
-                    l_Block = BlockId::Grass;
-                }
-            }
-
-            l_Column.m_Blocks[l_LocalY] = l_Block;
-        }
-
-        return l_Column;
-    }
-
     const float l_CaveFrequency = m_Config.m_CaveFrequency;
 
     for (int l_LocalY = 0; l_LocalY < Chunk::CHUNK_SIZE; ++l_LocalY)
@@ -102,8 +68,13 @@ GeneratedColumn WorldGenerator::GenerateColumn(const glm::ivec3& chunkCoordinate
         if (l_WorldY <= l_Column.m_SurfaceHeight)
         {
             // Use 3D noise to carve caves beneath the surface while preserving topsoil and grass.
-            const float l_CaveNoise = std::abs(SamplePerlin(static_cast<float>(l_WorldX) * l_CaveFrequency, static_cast<float>(l_WorldY) * l_CaveFrequency, static_cast<float>(l_WorldZ) * l_CaveFrequency));
-            const bool l_IsOpenCave = l_CaveNoise < m_Config.m_CaveThreshold && l_WorldY < l_Column.m_SurfaceHeight - 1;
+            const float l_CaveNoise = std::abs(SamplePerlin(
+                static_cast<float>(l_WorldX) * l_CaveFrequency,
+                static_cast<float>(l_WorldY) * l_CaveFrequency,
+                static_cast<float>(l_WorldZ) * l_CaveFrequency
+            ));
+            const bool l_IsOpenCave =
+                l_CaveNoise < m_Config.m_CaveThreshold && l_WorldY < l_Column.m_SurfaceHeight - 1;
 
             if (!l_IsOpenCave)
             {
@@ -169,14 +140,14 @@ float WorldGenerator::SamplePerlin(float x, float y, float z) const
     const int l_BB = m_Permutations[l_B + 1] + l_Z;
 
     const float l_GradientAA = Gradient(m_Permutations[l_AA], l_XRelative, l_YRelative, l_ZRelative);
-    const float l_GradientBA = Gradient(m_Permutations[l_BA], l_XRelative - 1.0f, l_YRelative, l_ZRelative);
-    const float l_GradientAB = Gradient(m_Permutations[l_AB], l_XRelative, l_YRelative - 1.0f, l_ZRelative);
-    const float l_GradientBB = Gradient(m_Permutations[l_BB], l_XRelative - 1.0f, l_YRelative - 1.0f, l_ZRelative);
+    const float l_GradientBA = Gradient(m_Permutations[l_BA], l_XRelative - 1, l_YRelative, l_ZRelative);
+    const float l_GradientAB = Gradient(m_Permutations[l_AB], l_XRelative, l_YRelative - 1, l_ZRelative);
+    const float l_GradientBB = Gradient(m_Permutations[l_BB], l_XRelative - 1, l_YRelative - 1, l_ZRelative);
 
-    const float l_GradientAA1 = Gradient(m_Permutations[l_AA + 1], l_XRelative, l_YRelative, l_ZRelative - 1.0f);
-    const float l_GradientBA1 = Gradient(m_Permutations[l_BA + 1], l_XRelative - 1.0f, l_YRelative, l_ZRelative - 1.0f);
-    const float l_GradientAB1 = Gradient(m_Permutations[l_AB + 1], l_XRelative, l_YRelative - 1.0f, l_ZRelative - 1.0f);
-    const float l_GradientBB1 = Gradient(m_Permutations[l_BB + 1], l_XRelative - 1.0f, l_YRelative - 1.0f, l_ZRelative - 1.0f);
+    const float l_GradientAA1 = Gradient(m_Permutations[l_AA + 1], l_XRelative, l_YRelative, l_ZRelative - 1);
+    const float l_GradientBA1 = Gradient(m_Permutations[l_BA + 1], l_XRelative - 1, l_YRelative, l_ZRelative - 1);
+    const float l_GradientAB1 = Gradient(m_Permutations[l_AB + 1], l_XRelative, l_YRelative - 1, l_ZRelative - 1);
+    const float l_GradientBB1 = Gradient(m_Permutations[l_BB + 1], l_XRelative - 1, l_YRelative - 1, l_ZRelative - 1);
 
     const float l_XLerp0 = Lerp(l_GradientAA, l_GradientBA, l_U);
     const float l_XLerp1 = Lerp(l_GradientAB, l_GradientBB, l_U);
