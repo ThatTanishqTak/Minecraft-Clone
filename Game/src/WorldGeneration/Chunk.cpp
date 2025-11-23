@@ -10,7 +10,8 @@ Chunk::Chunk(const glm::ivec3& position) : m_Position(position)
     m_BlockIds.fill(BlockId::Air);
     m_VisibilityMasks.fill(0);
 
-    GAME_TRACE("Chunk created at position ({}, {}, {})", m_Position.x, m_Position.y, m_Position.z);
+    // Previously traced every chunk creation; removed to avoid log spam.
+    // GAME_TRACE("Chunk created at position ({}, {}, {})", m_Position.x, m_Position.y, m_Position.z);
 }
 
 void Chunk::SetBlock(int x, int y, int z, BlockId blockID)
@@ -18,7 +19,8 @@ void Chunk::SetBlock(int x, int y, int z, BlockId blockID)
     const size_t l_Index = ToIndex(x, y, z);
     m_BlockIds[l_Index] = blockID;
 
-    GAME_TRACE("Block set at ({}, {}, {}) to id {}", x, y, z, static_cast<int>(blockID));
+    // This was being called for every block write in terrain gen, totally excessive.
+    // GAME_TRACE("Block set at ({}, {}, {}) to id {}", x, y, z, static_cast<int>(blockID));
 }
 
 BlockId Chunk::GetBlock(int x, int y, int z) const
@@ -29,7 +31,9 @@ BlockId Chunk::GetBlock(int x, int y, int z) const
 
 void Chunk::RebuildVisibility()
 {
-    GAME_TRACE("Rebuilding visibility masks for chunk at ({}, {}, {})", m_Position.x, m_Position.y, m_Position.z);
+    // This ran once per chunk and logged twice; fine for debugging, awful for runtime spam.
+    // GAME_TRACE("Rebuilding visibility masks for chunk at ({}, {}, {})",
+    //     m_Position.x, m_Position.y, m_Position.z);
 
     // Determine which faces are exposed by checking for air/out-of-bounds neighbors.
     for (int z = 0; z < CHUNK_SIZE; ++z)
@@ -55,7 +59,9 @@ void Chunk::RebuildVisibility()
                         const int l_NeighborZ = z + zOffset;
 
                         const bool l_HasNeighbor = IsInsideChunk(l_NeighborX, l_NeighborY, l_NeighborZ);
-                        const BlockId l_NeighborBlock = l_HasNeighbor ? GetBlock(l_NeighborX, l_NeighborY, l_NeighborZ) : BlockId::Air;
+                        const BlockId l_NeighborBlock = l_HasNeighbor
+                            ? GetBlock(l_NeighborX, l_NeighborY, l_NeighborZ)
+                            : BlockId::Air;
 
                         if (l_NeighborBlock == BlockId::Air)
                         {
@@ -75,7 +81,8 @@ void Chunk::RebuildVisibility()
         }
     }
 
-    GAME_TRACE("Visibility masks rebuilt for chunk at ({}, {}, {})", m_Position.x, m_Position.y, m_Position.z);
+    // GAME_TRACE("Visibility masks rebuilt for chunk at ({}, {}, {})",
+    //     m_Position.x, m_Position.y, m_Position.z);
 }
 
 bool Chunk::IsFaceVisible(int x, int y, int z, BlockFace face) const
@@ -97,5 +104,7 @@ size_t Chunk::ToIndex(int x, int y, int z) const
 
 bool Chunk::IsInsideChunk(int x, int y, int z) const
 {
-    return x >= 0 && x < CHUNK_SIZE && y >= 0 && y < CHUNK_SIZE && z >= 0 && z < CHUNK_SIZE;
+    return x >= 0 && x < CHUNK_SIZE &&
+        y >= 0 && y < CHUNK_SIZE &&
+        z >= 0 && z < CHUNK_SIZE;
 }

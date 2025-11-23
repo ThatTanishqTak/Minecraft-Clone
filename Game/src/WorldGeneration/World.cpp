@@ -1,7 +1,6 @@
 #include "World.h"
 
 #include <algorithm>
-#include <utility>
 
 #include "Engine/Core/Log.h"
 #include "Engine/Renderer/Texture2D.h"
@@ -24,18 +23,14 @@ size_t World::IVec3Hasher::operator()(const glm::ivec3& key) const noexcept
     return l_Hash;
 }
 
-World::World(ChunkMesher* chunkMesher, const Engine::Texture2D* texture, const WorldGenerator* worldGenerator) : m_ChunkMesher(chunkMesher), m_Texture(texture),
-    m_WorldGenerator(worldGenerator)
+World::World(ChunkMesher* chunkMesher, const Engine::Texture2D* texture, const WorldGenerator* worldGenerator)
+    : m_ChunkMesher(chunkMesher)
+    , m_Texture(texture)
+    , m_WorldGenerator(worldGenerator)
 {
     // The world streams chunks near the player to avoid simulating infinity. This constructor wires
     // meshing and texturing dependencies so new chunks can be generated immediately when requested.
-    StartWorkerThread();
-    GAME_TRACE("World created with render distance {} and worker thread running", m_RenderDistance);
-}
-
-World::~World()
-{
-    Shutdown();
+    GAME_TRACE("World created with render distance {}", m_RenderDistance);
 }
 
 void World::SetRenderDistance(int renderDistance)
@@ -47,34 +42,31 @@ void World::SetRenderDistance(int renderDistance)
 
 void World::UpdateActiveChunks(const glm::ivec3& centerChunkCoordinate)
 {
-    // Remember the camera center so dirty chunk prioritization can favor nearby work first.
-    m_LastCenterChunkCoordinate = centerChunkCoordinate;
-
-    // Drain completed jobs first so any newly built chunks are visible before we enqueue more work.
-    ProcessCompletedChunks();
-
     // Determine which chunk coordinates should stay loaded around the camera.
     std::unordered_set<glm::ivec3, IVec3Hasher> l_DesiredChunks;
+
+    // Restrict streaming to a horizontal (X/Z) radius. Vertical chunk range can be expanded later
+    // if needed, but staying flat avoids loading unnecessary layers above and below.
     for (int l_DeltaX = -m_RenderDistance; l_DeltaX <= m_RenderDistance; ++l_DeltaX)
     {
-        for (int l_DeltaY = -m_RenderDistance; l_DeltaY <= m_RenderDistance; ++l_DeltaY)
+        for (int l_DeltaZ = -m_RenderDistance; l_DeltaZ <= m_RenderDistance; ++l_DeltaZ)
         {
-            for (int l_DeltaZ = -m_RenderDistance; l_DeltaZ <= m_RenderDistance; ++l_DeltaZ)
-            {
-                const glm::ivec3 l_TargetChunk = centerChunkCoordinate + glm::ivec3{ l_DeltaX, l_DeltaY, l_DeltaZ };
-                l_DesiredChunks.insert(l_TargetChunk);
-            }
+            const glm::ivec3 l_TargetChunk = centerChunkCoordinate + glm::ivec3{ l_DeltaX, 0, l_DeltaZ };
+            l_DesiredChunks.insert(l_TargetChunk);
         }
     }
 
-    // Remove chunks that drifted outside the desired radius and cancel any pending work for them.
+    // Remove chunks that drifted outside the desired radius.
     for (auto it_Chunk = m_ActiveChunks.begin(); it_Chunk != m_ActiveChunks.end();)
     {
         if (l_DesiredChunks.find(it_Chunk->first) == l_DesiredChunks.end())
         {
             GAME_TRACE("Unloading chunk at ({}, {}, {})", it_Chunk->first.x, it_Chunk->first.y, it_Chunk->first.z);
+
+            // Remove associated mesh and pending mesh updates.
             m_MeshPool.erase(it_Chunk->first);
-            m_PendingChunkCoordinates.erase(it_Chunk->first);
+            m_PendingMeshUpdates.erase(it_Chunk->first);
+
             it_Chunk = m_ActiveChunks.erase(it_Chunk);
         }
         else
@@ -83,43 +75,33 @@ void World::UpdateActiveChunks(const glm::ivec3& centerChunkCoordinate)
         }
     }
 
-    // Spawn any missing neighbors to keep the render bubble filled, limiting how many jobs start this frame.
-    size_t l_JobBudget = m_MaxChunkJobsPerFrame;
+    // Spawn any missing neighbors to keep the render bubble filled.
     for (const glm::ivec3& it_DesiredChunk : l_DesiredChunks)
     {
-        if (l_JobBudget == 0)
-        {
-            break;
-        }
-
-        CreateChunkIfMissing(it_DesiredChunk, l_JobBudget);
+        CreateChunkIfMissing(it_DesiredChunk);
     }
 }
 
 void World::RefreshChunkMeshes()
 {
-    // Integrate completed uploads before scheduling fresh work so renderers pick up new meshes immediately.
-    ProcessCompletedChunks();
+    // Process a limited number of mesh rebuild jobs per frame so chunk streaming does not stall
+    // the main thread when the camera crosses chunk boundaries.
+    constexpr int kMaxMeshRebuildsPerFrame = 2;
+    int l_ProcessedCount = 0;
 
-    size_t l_JobBudget = m_MaxChunkJobsPerFrame;
-
-    // Drain only a few dirty chunks each frame to smooth meshing work and avoid hitches.
-    while (l_JobBudget > 0)
+    while (l_ProcessedCount < kMaxMeshRebuildsPerFrame && !m_MeshRebuildQueue.empty())
     {
-        glm::ivec3 l_ChunkCoordinate{};
-        if (!TryDequeueNearestDirtyChunk(l_ChunkCoordinate))
+        const glm::ivec3 l_ChunkCoordinate = m_MeshRebuildQueue.front();
+        m_MeshRebuildQueue.pop();
+        m_PendingMeshUpdates.erase(l_ChunkCoordinate);
+
+        auto it_Chunk = m_ActiveChunks.find(l_ChunkCoordinate);
+        if (it_Chunk != m_ActiveChunks.end())
         {
-            break;
+            MeshChunkIfDirty(it_Chunk->second);
         }
 
-        const auto it_Chunk = m_ActiveChunks.find(l_ChunkCoordinate);
-        if (it_Chunk == m_ActiveChunks.end())
-        {
-            // The chunk was unloaded before we processed it.
-            continue;
-        }
-
-        MeshChunkIfDirty(it_Chunk->second, l_JobBudget, l_ChunkCoordinate);
+        ++l_ProcessedCount;
     }
 }
 
@@ -134,22 +116,30 @@ void World::MarkChunkDirty(const glm::ivec3& chunkCoordinate)
     // Flag the chunk so the next refresh pass will regenerate its mesh from cached block data.
     it_Chunk->second.m_IsDirty = true;
 
-    EnqueueDirtyChunk(chunkCoordinate);
+    // Enqueue a mesh rebuild if this chunk is not already queued.
+    if (m_PendingMeshUpdates.insert(chunkCoordinate).second)
+    {
+        m_MeshRebuildQueue.push(chunkCoordinate);
+    }
 }
 
 void World::Shutdown()
 {
-    // Shutting down the worker prevents background threads from touching engine state during destruction.
-    StopWorkerThread();
-
     // Clearing the map releases chunk memory and GPU buffers through destructors.
     m_ActiveChunks.clear();
+
+    // Also clear mesh pool and any pending mesh rebuilds.
+    while (!m_MeshRebuildQueue.empty())
+    {
+        m_MeshRebuildQueue.pop();
+    }
+    m_PendingMeshUpdates.clear();
     m_MeshPool.clear();
-    m_PendingChunkCoordinates.clear();
+
     GAME_INFO("World shut down and all chunks released");
 }
 
-void World::CreateChunkIfMissing(const glm::ivec3& chunkCoordinate, size_t& jobBudget)
+void World::CreateChunkIfMissing(const glm::ivec3& chunkCoordinate)
 {
     if (m_ActiveChunks.find(chunkCoordinate) != m_ActiveChunks.end())
     {
@@ -157,20 +147,26 @@ void World::CreateChunkIfMissing(const glm::ivec3& chunkCoordinate, size_t& jobB
     }
 
     ActiveChunk l_NewChunk;
+    l_NewChunk.m_Chunk = std::make_unique<Chunk>(chunkCoordinate);
+    PopulateChunkBlocks(*l_NewChunk.m_Chunk);
+    l_NewChunk.m_Chunk->RebuildVisibility();
+
     l_NewChunk.m_Renderer = std::make_unique<ChunkRenderer>();
     l_NewChunk.m_Renderer->SetTexture(m_Texture);
     l_NewChunk.m_IsDirty = true;
 
     auto a_EmplaceResult = m_ActiveChunks.emplace(chunkCoordinate, std::move(l_NewChunk));
-    if (!a_EmplaceResult.second)
+    (void)a_EmplaceResult;
+
+    // Queue an initial mesh build for this new chunk so it will appear gradually instead of
+    // blocking a single frame with many mesh builds.
+    if (m_PendingMeshUpdates.insert(chunkCoordinate).second)
     {
-        return;
+        m_MeshRebuildQueue.push(chunkCoordinate);
     }
 
-    GAME_TRACE("Chunk placeholder created at ({}, {}, {}) and queued for worker build", chunkCoordinate.x, chunkCoordinate.y, chunkCoordinate.z);
-
-    EnqueueDirtyChunk(chunkCoordinate);
-    QueueChunkBuild(chunkCoordinate, nullptr, jobBudget);
+    GAME_TRACE("Chunk created and marked dirty at ({}, {}, {})",
+        chunkCoordinate.x, chunkCoordinate.y, chunkCoordinate.z);
 }
 
 void World::PopulateChunkBlocks(Chunk& chunk) const
@@ -178,7 +174,8 @@ void World::PopulateChunkBlocks(Chunk& chunk) const
     // Populate the chunk using the procedural generator; fall back to air when no generator is provided.
     if (m_WorldGenerator == nullptr)
     {
-        GAME_WARN("WorldGenerator missing; chunk at ({}, {}, {}) will remain empty", chunk.GetPosition().x, chunk.GetPosition().y, chunk.GetPosition().z);
+        GAME_WARN("WorldGenerator missing; chunk at ({}, {}, {}) will remain empty",
+            chunk.GetPosition().x, chunk.GetPosition().y, chunk.GetPosition().z);
 
         return;
     }
@@ -197,201 +194,31 @@ void World::PopulateChunkBlocks(Chunk& chunk) const
     }
 }
 
-void World::MeshChunkOnWorker(const ChunkBuildTask& task)
+void World::MeshChunkIfDirty(ActiveChunk& chunkData)
 {
-    ChunkBuildResult l_Result{};
-    l_Result.m_ChunkCoordinate = task.m_ChunkCoordinate;
-
-    // Build or reuse chunk data off the main thread so rendering stays responsive.
-    l_Result.m_Chunk = task.m_ExistingChunk != nullptr ? task.m_ExistingChunk : std::make_shared<Chunk>(task.m_ChunkCoordinate);
-
-    if (task.m_ExistingChunk == nullptr)
-    {
-        PopulateChunkBlocks(*l_Result.m_Chunk);
-    }
-
-    l_Result.m_Chunk->RebuildVisibility();
-
-    if (m_ChunkMesher != nullptr)
-    {
-        l_Result.m_MeshedChunk = m_ChunkMesher->Mesh(*l_Result.m_Chunk);
-    }
-
-    m_CompletedChunkQueue.Push(std::move(l_Result));
-}
-
-void World::MeshChunkIfDirty(ActiveChunk& chunkData, size_t& jobBudget, const glm::ivec3& chunkCoordinate)
-{
-    if (!chunkData.m_IsDirty || chunkData.m_Renderer == nullptr)
+    if (m_ChunkMesher == nullptr || !chunkData.m_IsDirty || chunkData.m_Renderer == nullptr)
     {
         return;
     }
 
-    QueueChunkBuild(chunkCoordinate, chunkData.m_Chunk, jobBudget);
-}
-
-void World::EnqueueDirtyChunk(const glm::ivec3& chunkCoordinate)
-{
-    if (m_DirtyChunkSet.find(chunkCoordinate) != m_DirtyChunkSet.end())
+    if (chunkData.m_Chunk == nullptr)
     {
         return;
     }
 
-    const int l_NewDistance = CalculateManhattanDistance(chunkCoordinate, m_LastCenterChunkCoordinate);
+    const glm::ivec3 l_ChunkCoordinate = chunkData.m_Chunk->GetPosition();
 
-    if (m_DirtyChunkQueue.size() >= m_DirtyQueueCapacity)
+    // Meshing is cached per chunk coordinate so re-uploads reuse pooled buffers when possible.
+    const MeshedChunk l_MeshedChunk = m_ChunkMesher->Mesh(*chunkData.m_Chunk);
+
+    auto it_MeshBuffer = m_MeshPool.find(l_ChunkCoordinate);
+    if (it_MeshBuffer == m_MeshPool.end())
     {
-        // Replace the farthest queued chunk if the incoming work is closer to the camera.
-        auto it_Farthest = std::max_element(m_DirtyChunkQueue.begin(), m_DirtyChunkQueue.end(),
-            [this](const glm::ivec3& a, const glm::ivec3& b)
-            {
-                const int l_DistanceA = CalculateManhattanDistance(a, m_LastCenterChunkCoordinate);
-                const int l_DistanceB = CalculateManhattanDistance(b, m_LastCenterChunkCoordinate);
-                return l_DistanceA < l_DistanceB;
-            });
-
-        const int l_FarthestDistance = CalculateManhattanDistance(*it_Farthest, m_LastCenterChunkCoordinate);
-        if (l_NewDistance >= l_FarthestDistance)
-        {
-            // Drop distant work so near chunks complete faster when the buffer is saturated.
-            return;
-        }
-
-        m_DirtyChunkSet.erase(*it_Farthest);
-        *it_Farthest = chunkCoordinate;
-        m_DirtyChunkSet.insert(chunkCoordinate);
-        return;
+        it_MeshBuffer = m_MeshPool.emplace(l_ChunkCoordinate, nullptr).first;
     }
 
-    m_DirtyChunkQueue.push_back(chunkCoordinate);
-    m_DirtyChunkSet.insert(chunkCoordinate);
-}
-
-bool World::TryDequeueNearestDirtyChunk(glm::ivec3& outChunkCoordinate)
-{
-    if (m_DirtyChunkQueue.empty())
-    {
-        return false;
-    }
-
-    // Pick the closest dirty chunk so we prioritize the player bubble and defer distant updates.
-    size_t l_BestIndex = 0;
-    int l_BestDistance = CalculateManhattanDistance(m_DirtyChunkQueue[0], m_LastCenterChunkCoordinate);
-
-    for (size_t l_Index = 1; l_Index < m_DirtyChunkQueue.size(); ++l_Index)
-    {
-        const int l_Distance = CalculateManhattanDistance(m_DirtyChunkQueue[l_Index], m_LastCenterChunkCoordinate);
-        if (l_Distance < l_BestDistance)
-        {
-            l_BestDistance = l_Distance;
-            l_BestIndex = l_Index;
-        }
-    }
-
-    outChunkCoordinate = m_DirtyChunkQueue[l_BestIndex];
-
-    // Remove the chosen chunk from the ring buffer by swapping with the tail for O(1) erase.
-    m_DirtyChunkQueue[l_BestIndex] = m_DirtyChunkQueue.back();
-    m_DirtyChunkQueue.pop_back();
-    m_DirtyChunkSet.erase(outChunkCoordinate);
-
-    return true;
-}
-
-int World::CalculateManhattanDistance(const glm::ivec3& a, const glm::ivec3& b) const
-{
-    const glm::ivec3 l_Delta = glm::abs(a - b);
-    return l_Delta.x + l_Delta.y + l_Delta.z;
-}
-
-void World::ProcessCompletedChunks()
-{
-    ChunkBuildResult l_Result{};
-    while (m_CompletedChunkQueue.TryPop(l_Result))
-    {
-        m_PendingChunkCoordinates.erase(l_Result.m_ChunkCoordinate);
-
-        const auto it_Chunk = m_ActiveChunks.find(l_Result.m_ChunkCoordinate);
-        if (it_Chunk == m_ActiveChunks.end())
-        {
-            continue;
-        }
-
-        ActiveChunk& l_ActiveChunk = it_Chunk->second;
-        l_ActiveChunk.m_Chunk = l_Result.m_Chunk;
-
-        auto it_MeshBuffer = m_MeshPool.find(l_Result.m_ChunkCoordinate);
-        if (it_MeshBuffer == m_MeshPool.end())
-        {
-            it_MeshBuffer = m_MeshPool.emplace(l_Result.m_ChunkCoordinate, nullptr).first;
-        }
-
-        if (l_ActiveChunk.m_Renderer == nullptr)
-        {
-            l_ActiveChunk.m_Renderer = std::make_unique<ChunkRenderer>();
-        }
-
-        l_ActiveChunk.m_Renderer->SetTexture(m_Texture);
-
-        if (!l_Result.m_MeshedChunk.m_Vertices.empty())
-        {
-            it_MeshBuffer->second = std::make_shared<Engine::Mesh>(l_Result.m_MeshedChunk.m_Vertices, l_Result.m_MeshedChunk.m_Indices);
-            l_ActiveChunk.m_Renderer->UpdateMesh(it_MeshBuffer->second);
-        }
-
-        l_ActiveChunk.m_IsDirty = false;
-    }
-}
-
-bool World::QueueChunkBuild(const glm::ivec3& chunkCoordinate, const std::shared_ptr<Chunk>& existingChunk, size_t& jobBudget)
-{
-    if (jobBudget == 0)
-    {
-        return false;
-    }
-
-    if (m_PendingChunkCoordinates.find(chunkCoordinate) != m_PendingChunkCoordinates.end())
-    {
-        return false;
-    }
-
-    ChunkBuildTask l_Task{};
-    l_Task.m_ChunkCoordinate = chunkCoordinate;
-    l_Task.m_ExistingChunk = existingChunk;
-    m_PendingChunkCoordinates.insert(chunkCoordinate);
-
-    m_ChunkBuildQueue.Push(std::move(l_Task));
-    --jobBudget;
-
-    return true;
-}
-
-void World::StartWorkerThread()
-{
-    // Launch the worker thread that will build chunk data and meshes away from the render loop.
-    m_ShouldStop = false;
-    m_WorkerThread = std::thread([this]()
-        {
-            while (!m_ShouldStop.load())
-            {
-                ChunkBuildTask l_Task{};
-                if (!m_ChunkBuildQueue.WaitPop(l_Task, m_ShouldStop))
-                {
-                    break;
-                }
-
-                MeshChunkOnWorker(l_Task);
-            }
-        });
-}
-
-void World::StopWorkerThread()
-{
-    m_ShouldStop = true;
-    m_ChunkBuildQueue.NotifyAll();
-
-    if (m_WorkerThread.joinable())
-    {
-        m_WorkerThread.join();
-    }
+    it_MeshBuffer->second = std::make_shared<Engine::Mesh>(l_MeshedChunk.m_Vertices, l_MeshedChunk.m_Indices);
+    chunkData.m_Renderer->SetTexture(m_Texture);
+    chunkData.m_Renderer->UpdateMesh(it_MeshBuffer->second);
+    chunkData.m_IsDirty = false;
 }

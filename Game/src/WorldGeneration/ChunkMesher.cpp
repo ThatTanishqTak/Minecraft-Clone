@@ -6,13 +6,14 @@
 
 ChunkMesher::ChunkMesher(const TextureAtlas* textureAtlas) : m_TextureAtlas(textureAtlas)
 {
-    // Capture atlas pointer up front so meshing can emit UVs for each quad.
-    GAME_TRACE("ChunkMesher constructed with texture atlas: {}", m_TextureAtlas != nullptr);
+    // Previously logged the atlas pointer; leaving this log out for cleanliness.
+    // GAME_TRACE("ChunkMesher constructed with texture atlas: {}", m_TextureAtlas != nullptr);
 }
 
 MeshedChunk ChunkMesher::Mesh(const Chunk& chunk) const
 {
-    GAME_TRACE("Meshing chunk at position ({}, {}, {})", chunk.GetPosition().x, chunk.GetPosition().y, chunk.GetPosition().z);
+    // Removed extremely spammy tracing.
+    // GAME_TRACE("Meshing chunk at position ({}, {}, {})", chunk.GetPosition().x, chunk.GetPosition().y, chunk.GetPosition().z);
 
     MeshedChunk l_Output{};
 
@@ -24,16 +25,17 @@ MeshedChunk ChunkMesher::Mesh(const Chunk& chunk) const
     BuildFaceQuads(chunk, BlockFace::North, l_Output);
     BuildFaceQuads(chunk, BlockFace::South, l_Output);
 
-    GAME_TRACE("Meshing complete with {} vertices and {} indices", l_Output.m_Vertices.size(), l_Output.m_Indices.size());
+    // Also removed mesh size trace.
+    // GAME_TRACE("Meshing complete with {} vertices and {} indices", l_Output.m_Vertices.size(), l_Output.m_Indices.size());
 
     return l_Output;
 }
 
 void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk& outMesh) const
 {
-    GAME_TRACE("Building quads for face {}", static_cast<int>(face));
+    // Removed per-face trace, unnecessary during gameplay.
+    // GAME_TRACE("Building quads for face {}", static_cast<int>(face));
 
-    // Greedy meshing across a plane for the specified face.
     const int l_Size = Chunk::CHUNK_SIZE;
 
     std::vector<BlockId> l_Mask(static_cast<size_t>(l_Size * l_Size), BlockId::Air);
@@ -45,9 +47,7 @@ void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk
         {
             for (int u = 0; u < l_Size; ++u)
             {
-                int x = 0;
-                int y = 0;
-                int z = 0;
+                int x = 0, y = 0, z = 0;
 
                 if (face == BlockFace::East || face == BlockFace::West)
                 {
@@ -61,7 +61,7 @@ void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk
                     y = (face == BlockFace::Top) ? l_Size - 1 - w : w;
                     z = v;
                 }
-                else // North/South
+                else // North / South
                 {
                     x = u;
                     y = v;
@@ -88,7 +88,8 @@ void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk
                 }
 
                 int l_Width = 1;
-                while (u + l_Width < l_Size && l_Mask[static_cast<size_t>(v * l_Size + u + l_Width)] == l_Current)
+                while (u + l_Width < l_Size &&
+                    l_Mask[static_cast<size_t>(v * l_Size + u + l_Width)] == l_Current)
                 {
                     ++l_Width;
                 }
@@ -105,71 +106,59 @@ void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk
                             break;
                         }
                     }
-
-                    if (!l_Done)
-                    {
-                        ++l_Height;
-                    }
+                    if (!l_Done) ++l_Height;
                 }
 
                 for (int l_CoverV = 0; l_CoverV < l_Height; ++l_CoverV)
-                {
                     for (int l_CoverU = 0; l_CoverU < l_Width; ++l_CoverU)
-                    {
                         l_Mask[static_cast<size_t>((v + l_CoverV) * l_Size + u + l_CoverU)] = BlockId::Air;
-                    }
-                }
 
-                glm::vec3 l_Origin{ 0.0f };
-                glm::vec3 l_UDirection{ 0.0f };
-                glm::vec3 l_VDirection{ 0.0f };
-                glm::vec3 l_Normal{ 0.0f };
+                glm::vec3 l_Origin{}, l_UDirection{}, l_VDirection{}, l_Normal{};
 
                 if (face == BlockFace::East)
                 {
-                    l_Origin = glm::vec3{ static_cast<float>(w + 1), static_cast<float>(u), static_cast<float>(v) };
-                    l_UDirection = glm::vec3{ 0.0f, static_cast<float>(l_Width), 0.0f };
-                    l_VDirection = glm::vec3{ 0.0f, 0.0f, static_cast<float>(l_Height) };
+                    l_Origin = glm::vec3{ float(w + 1), float(u), float(v) };
+                    l_UDirection = glm::vec3{ 0.0f, float(l_Width), 0.0f };
+                    l_VDirection = glm::vec3{ 0.0f, 0.0f, float(l_Height) };
                     l_Normal = glm::vec3{ 1.0f, 0.0f, 0.0f };
                 }
                 else if (face == BlockFace::West)
                 {
-                    l_Origin = glm::vec3{ static_cast<float>(l_Size - w - 1), static_cast<float>(u), static_cast<float>(v + l_Height) };
-                    l_UDirection = glm::vec3{ 0.0f, static_cast<float>(l_Width), 0.0f };
-                    l_VDirection = glm::vec3{ 0.0f, 0.0f, -static_cast<float>(l_Height) };
+                    l_Origin = glm::vec3{ float(l_Size - w - 1), float(u), float(v + l_Height) };
+                    l_UDirection = glm::vec3{ 0.0f, float(l_Width), 0.0f };
+                    l_VDirection = glm::vec3{ 0.0f, 0.0f, -float(l_Height) };
                     l_Normal = glm::vec3{ -1.0f, 0.0f, 0.0f };
                 }
                 else if (face == BlockFace::Top)
                 {
-                    l_Origin = glm::vec3{ static_cast<float>(u), static_cast<float>(l_Size - w), static_cast<float>(v) };
-                    l_UDirection = glm::vec3{ static_cast<float>(l_Width), 0.0f, 0.0f };
-                    l_VDirection = glm::vec3{ 0.0f, 0.0f, static_cast<float>(l_Height) };
+                    l_Origin = glm::vec3{ float(u), float(l_Size - w), float(v) };
+                    l_UDirection = glm::vec3{ float(l_Width), 0.0f, 0.0f };
+                    l_VDirection = glm::vec3{ 0.0f, 0.0f, float(l_Height) };
                     l_Normal = glm::vec3{ 0.0f, 1.0f, 0.0f };
                 }
                 else if (face == BlockFace::Bottom)
                 {
-                    l_Origin = glm::vec3{ static_cast<float>(u), static_cast<float>(w), static_cast<float>(v + l_Height) };
-                    l_UDirection = glm::vec3{ static_cast<float>(l_Width), 0.0f, 0.0f };
-                    l_VDirection = glm::vec3{ 0.0f, 0.0f, -static_cast<float>(l_Height) };
+                    l_Origin = glm::vec3{ float(u), float(w), float(v + l_Height) };
+                    l_UDirection = glm::vec3{ float(l_Width), 0.0f, 0.0f };
+                    l_VDirection = glm::vec3{ 0.0f, 0.0f, -float(l_Height) };
                     l_Normal = glm::vec3{ 0.0f, -1.0f, 0.0f };
                 }
                 else if (face == BlockFace::North)
                 {
-                    l_Origin = glm::vec3{ static_cast<float>(u), static_cast<float>(v), static_cast<float>(w + 1) };
-                    l_UDirection = glm::vec3{ static_cast<float>(l_Width), 0.0f, 0.0f };
-                    l_VDirection = glm::vec3{ 0.0f, static_cast<float>(l_Height), 0.0f };
+                    l_Origin = glm::vec3{ float(u), float(v), float(w + 1) };
+                    l_UDirection = glm::vec3{ float(l_Width), 0.0f, 0.0f };
+                    l_VDirection = glm::vec3{ 0.0f, float(l_Height), 0.0f };
                     l_Normal = glm::vec3{ 0.0f, 0.0f, 1.0f };
                 }
                 else // South
                 {
-                    l_Origin = glm::vec3{ static_cast<float>(u), static_cast<float>(v + l_Height), static_cast<float>(l_Size - w - 1) };
-                    l_UDirection = glm::vec3{ static_cast<float>(l_Width), 0.0f, 0.0f };
-                    l_VDirection = glm::vec3{ 0.0f, -static_cast<float>(l_Height), 0.0f };
+                    l_Origin = glm::vec3{ float(u), float(v + l_Height), float(l_Size - w - 1) };
+                    l_UDirection = glm::vec3{ float(l_Width), 0.0f, 0.0f };
+                    l_VDirection = glm::vec3{ 0.0f, -float(l_Height), 0.0f };
                     l_Normal = glm::vec3{ 0.0f, 0.0f, -1.0f };
                 }
 
                 EmitQuad(l_Origin, l_UDirection, l_VDirection, l_Normal, l_Current, face, outMesh);
-
                 u += l_Width;
             }
             ++v;
@@ -177,34 +166,37 @@ void ChunkMesher::BuildFaceQuads(const Chunk& chunk, BlockFace face, MeshedChunk
     }
 }
 
-void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection, const glm::vec3& vDirection, const glm::vec3& normal,
-    BlockId blockID, BlockFace face, MeshedChunk& outMesh) const
+void ChunkMesher::EmitQuad(
+    const glm::vec3& origin,
+    const glm::vec3& uDirection,
+    const glm::vec3& vDirection,
+    const glm::vec3& normal,
+    BlockId blockID,
+    BlockFace face,
+    MeshedChunk& outMesh
+) const
 {
-    // Generate four vertices forming a quad using supplied orientation vectors.
-    // Emit vertices in u-then-v order so the base winding follows u × v.
     const glm::vec3 l_P0 = origin;
     const glm::vec3 l_P1 = origin + uDirection;
     const glm::vec3 l_P2 = origin + uDirection + vDirection;
     const glm::vec3 l_P3 = origin + vDirection;
 
-    // Prefer sampling the atlas whenever it is available. Fall back to flat colors when the
-    // atlas is missing so rendering can continue during asset failures.
-    const bool l_HasAtlas = m_TextureAtlas != nullptr && m_TextureAtlas->GetTexture() != nullptr && m_TextureAtlas->GetTexture()->IsValid();
+    const bool l_HasAtlas = m_TextureAtlas &&
+        m_TextureAtlas->GetTexture() &&
+        m_TextureAtlas->GetTexture()->IsValid();
 
-    const glm::vec3 l_Color = l_HasAtlas ? glm::vec3{ 1.0f, 1.0f, 1.0f } : GetFallbackBlockFaceColor(blockID, face);
+    const glm::vec3 l_Color =
+        l_HasAtlas ? glm::vec3{ 1.0f } : GetFallbackBlockFaceColor(blockID, face);
 
     BlockFaceUV l_FaceUV{};
     if (l_HasAtlas)
-    {
         l_FaceUV = m_TextureAtlas->GetFaceUVs(blockID, face);
-    }
 
-    // Map UVs to the quad corners in winding order (P0 -> P1 -> P2 -> P3).
     const std::array<glm::vec2, 4> l_UVs = {
-        l_FaceUV.m_UV00, // Origin
-        l_FaceUV.m_UV10, // +u
-        l_FaceUV.m_UV11, // +u +v
-        l_FaceUV.m_UV01  // +v
+        l_FaceUV.m_UV00,
+        l_FaceUV.m_UV10,
+        l_FaceUV.m_UV11,
+        l_FaceUV.m_UV01
     };
 
     const std::array<Engine::Mesh::Vertex, 4> l_Vertices = {
@@ -217,47 +209,41 @@ void ChunkMesher::EmitQuad(const glm::vec3& origin, const glm::vec3& uDirection,
     const uint32_t l_StartIndex = static_cast<uint32_t>(outMesh.m_Vertices.size());
     outMesh.m_Vertices.insert(outMesh.m_Vertices.end(), l_Vertices.begin(), l_Vertices.end());
 
-    // Ensure winding matches the outward normal; flip when u × v points opposite the normal.
-    const bool l_FlipWinding = glm::dot(glm::cross(uDirection, vDirection), normal) < 0.0f;
+    const bool l_FlipWinding =
+        glm::dot(glm::cross(uDirection, vDirection), normal) < 0.0f;
 
     const std::array<uint32_t, 6> l_QuadIndices = l_FlipWinding
-        ? std::array<uint32_t, 6>{
-        l_StartIndex + 0, l_StartIndex + 2, l_StartIndex + 1,
-            l_StartIndex + 0, l_StartIndex + 3, l_StartIndex + 2
-    }
-    : std::array<uint32_t, 6>{
-        l_StartIndex + 0, l_StartIndex + 1, l_StartIndex + 2,
-        l_StartIndex + 2, l_StartIndex + 3, l_StartIndex + 0
-    };
+        ? std::array<uint32_t, 6>{ l_StartIndex + 0, l_StartIndex + 2, l_StartIndex + 1,
+        l_StartIndex + 0, l_StartIndex + 3, l_StartIndex + 2 }
+    : std::array<uint32_t, 6>{ l_StartIndex + 0, l_StartIndex + 1, l_StartIndex + 2,
+                               l_StartIndex + 2, l_StartIndex + 3, l_StartIndex + 0 };
 
     outMesh.m_Indices.insert(outMesh.m_Indices.end(), l_QuadIndices.begin(), l_QuadIndices.end());
 
-    GAME_TRACE("Emitted quad at origin ({}, {}, {}) with normal ({}, {}, {})", origin.x, origin.y, origin.z, normal.x, normal.y, normal.z);
+    // Removed extremely spammy quad logs.
+    // GAME_TRACE("Emitted quad at origin ({}, {}, {})", origin.x, origin.y, origin.z);
 }
 
 glm::vec3 ChunkMesher::GetFallbackBlockFaceColor(BlockId blockID, BlockFace face) const
 {
-    // Provide simple, readable colors for each block type to replace UV sampling.
-    // Slightly tint the colors per face to give subtle variation and depth cues.
     const std::array<glm::vec3, 4> l_BaseColors = {
-        glm::vec3{ 0.0f, 0.0f, 0.0f }, // Air (unused)
-        glm::vec3{ 0.35f, 0.70f, 0.25f }, // Grass
-        glm::vec3{ 0.55f, 0.35f, 0.20f }, // Dirt
-        glm::vec3{ 0.55f, 0.55f, 0.55f }, // Stone
+        glm::vec3{0.0f},                // Air
+        glm::vec3{0.35f, 0.70f, 0.25f}, // Grass
+        glm::vec3{0.55f, 0.35f, 0.20f}, // Dirt
+        glm::vec3{0.55f, 0.55f, 0.55f}, // Stone
     };
 
     const glm::vec3 l_BaseColor = l_BaseColors.at(static_cast<size_t>(blockID));
 
     const std::array<glm::vec3, static_cast<size_t>(BlockFace::Count)> l_FaceTints = {
-        glm::vec3{ 1.00f, 1.00f, 1.00f }, // North
-        glm::vec3{ 0.95f, 0.95f, 0.95f }, // South
-        glm::vec3{ 0.90f, 0.90f, 0.90f }, // East
-        glm::vec3{ 0.90f, 0.90f, 0.90f }, // West
-        glm::vec3{ 1.05f, 1.05f, 1.05f }, // Top
-        glm::vec3{ 0.85f, 0.85f, 0.85f }, // Bottom
+        glm::vec3{1.00f}, // North
+        glm::vec3{0.95f},
+        glm::vec3{0.90f},
+        glm::vec3{0.90f},
+        glm::vec3{1.05f},
+        glm::vec3{0.85f},
     };
 
     const glm::vec3 l_Tint = l_FaceTints.at(static_cast<size_t>(face));
-
     return glm::clamp(l_BaseColor * l_Tint, glm::vec3{ 0.0f }, glm::vec3{ 1.0f });
 }
