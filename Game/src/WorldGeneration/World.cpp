@@ -25,12 +25,11 @@ size_t World::IVec3Hasher::operator()(const glm::ivec3& key) const noexcept
     return l_Hash;
 }
 
-World::World(ChunkMesher* chunkMesher, const Engine::Texture2D* texture, const WorldGenerator* worldGenerator)
-    : m_ChunkMesher(chunkMesher),
-    m_Texture(texture),
-    m_WorldGenerator(worldGenerator)
+World::World(ChunkMesher* chunkMesher, const Engine::Texture2D* texture, const WorldGenerator* worldGenerator) : m_ChunkMesher(chunkMesher),
+    m_Texture(texture), m_WorldGenerator(worldGenerator)
 {
     GAME_TRACE("World created with render distance {}", m_RenderDistance);
+    
     StartGenerationWorker();
 }
 
@@ -49,6 +48,7 @@ void World::StartGenerationWorker()
     if (m_WorldGenerator == nullptr)
     {
         GAME_WARN("World created without WorldGenerator; generation worker not started");
+    
         return;
     }
 
@@ -102,13 +102,14 @@ void World::StopGenerationWorker()
 void World::SetRenderDistance(int renderDistance)
 {
     const int l_ClampedDistance = std::max(1, renderDistance);
-    m_RenderDistance = l_ClampedDistance;
+    m_RenderDistance = l_ClampedDistance; 
+    
     GAME_INFO("World render distance set to {} chunks", m_RenderDistance);
 }
 
 void World::UpdateActiveChunks(const glm::ivec3& centerChunkCoordinate)
 {
-    // 2D “disc” around the camera in XZ, keep Y fixed. 
+    // 2D "disc" around the camera in XZ, keep Y fixed. 
     std::unordered_set<glm::ivec3, IVec3Hasher> l_DesiredChunks;
     for (int l_DeltaX = -m_RenderDistance; l_DeltaX <= m_RenderDistance; ++l_DeltaX)
     {
@@ -124,8 +125,7 @@ void World::UpdateActiveChunks(const glm::ivec3& centerChunkCoordinate)
     {
         if (l_DesiredChunks.find(it_Chunk->first) == l_DesiredChunks.end())
         {
-            GAME_TRACE("Unloading chunk at ({}, {}, {})",
-                it_Chunk->first.x, it_Chunk->first.y, it_Chunk->first.z);
+            GAME_TRACE("Unloading chunk at ({}, {}, {})", it_Chunk->first.x, it_Chunk->first.y, it_Chunk->first.z);
 
             m_MeshPool.erase(it_Chunk->first);
             m_PendingMeshUpdates.erase(it_Chunk->first);
@@ -308,16 +308,14 @@ void World::CreateChunkIfMissing(const glm::ivec3& chunkCoordinate)
         m_MeshRebuildQueue.push(chunkCoordinate);
     }
 
-    GAME_TRACE("Chunk synchronously created and marked dirty at ({}, {}, {})",
-        chunkCoordinate.x, chunkCoordinate.y, chunkCoordinate.z);
+    GAME_TRACE("Chunk synchronously created and marked dirty at ({}, {}, {})", chunkCoordinate.x, chunkCoordinate.y, chunkCoordinate.z);
 }
 
 void World::PopulateChunkBlocks(Chunk& chunk) const
 {
     if (m_WorldGenerator == nullptr)
     {
-        GAME_WARN("WorldGenerator missing; chunk at ({}, {}, {}) will remain empty",
-            chunk.GetPosition().x, chunk.GetPosition().y, chunk.GetPosition().z);
+        GAME_WARN("WorldGenerator missing; chunk at ({}, {}, {}) will remain empty", chunk.GetPosition().x, chunk.GetPosition().y, chunk.GetPosition().z);
 
         return;
     }
