@@ -162,6 +162,9 @@ bool GameLayer::Initialize()
     Engine::Input::RegisterActionMapping("Sprint", { GLFW_KEY_LEFT_SHIFT });
     GAME_TRACE("Input mappings registered for full movement set and Sprint");
 
+    // Lock the cursor to the window so camera movement can use the full range of mouse deltas.
+    SetCursorLocked(true);
+
     // Record the first frame timestamp so delta time stays accurate even if the GLFW timer is reset externally.
     m_LastFrameTimePoint = std::chrono::steady_clock::now();
 
@@ -170,6 +173,33 @@ bool GameLayer::Initialize()
     GAME_INFO("GameLayer initialization completed successfully");
 
     return m_IsInitialized;
+}
+
+void GameLayer::SetCursorLocked(bool isLocked)
+{
+    // Toggle GLFW cursor mode so mouse movement stays within the window or is released for UI use.
+    if (m_IsCursorLocked == isLocked)
+    {
+        return;
+    }
+
+    GLFWwindow* l_CurrentWindow = glfwGetCurrentContext();
+    if (l_CurrentWindow == nullptr)
+    {
+        GAME_WARN("Cannot change cursor lock because there is no active GLFW context");
+        return;
+    }
+
+    const int l_TargetMode = isLocked ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL;
+    glfwSetInputMode(l_CurrentWindow, GLFW_CURSOR, l_TargetMode);
+
+    if (isLocked)
+    {
+        // Clear mouse tracking so the next movement after locking does not produce a large jump.
+        Engine::Input::ResetMouseTracking();
+    }
+
+    m_IsCursorLocked = isLocked;
 }
 
 void GameLayer::Update()
@@ -189,14 +219,33 @@ void GameLayer::Update()
 
     //GAME_TRACE("Frame update started with delta time: {} seconds", m_DeltaTimeSeconds);
 
-    // Demonstrate the new input API by polling both edge and hold state.
+    // Detect pause toggles so the mouse can be released for menus and re-locked for camera control.
     const bool l_WasEscapePressed = Engine::Input::WasKeyPressedThisFrame(GLFW_KEY_ESCAPE);
     if (l_WasEscapePressed)
     {
-        //GAME_INFO("Escape was pressed this frame");
+        m_IsPaused = !m_IsPaused;
+
+        if (m_IsPaused)
+        {
+            GAME_INFO("Game paused; releasing cursor for menu interaction");
+        }
+        else
+        {
+            GAME_INFO("Game resumed; locking cursor for camera control");
+        }
+
+        SetCursorLocked(!m_IsPaused);
     }
 
-    // Check movement and sprint intent via the action system so behavior can evolve without touching keycodes.
+    if (m_IsPaused)
+    {
+        // Keep the timer fresh while paused so resuming does not introduce a large delta time spike.
+        m_LastFrameTimePoint = l_CurrentFrameTimePoint;
+
+        return;
+    }
+
+    // Check movement and sprint intent via the action system so behavior can evolve without touching keycodes when unpaused.
     const bool l_IsSprinting = Engine::Input::IsActionDown("Sprint");
     const bool l_MoveForwardTriggered = Engine::Input::WasActionPressedThisFrame("MoveForward");
     const bool l_MoveBackwardTriggered = Engine::Input::WasActionPressedThisFrame("MoveBackward");

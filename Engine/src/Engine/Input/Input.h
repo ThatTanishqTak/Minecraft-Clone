@@ -17,6 +17,9 @@ namespace Engine
         static void BeginFrame();
         static void EndFrame();
 
+        // Reset cached mouse tracking so cursor mode transitions do not cause sudden camera jumps.
+        static void ResetMouseTracking();
+
         // Cache incoming events so gameplay code can query state without owning callbacks.
         static void OnEvent(const Event& event);
 

@@ -41,9 +41,12 @@ public:
 private:
     float CalculateSpawnHeightAboveTerrain() const;
     glm::ivec3 CalculateChunkCoordinate(const glm::vec3& worldPosition) const;
+    void SetCursorLocked(bool isLocked);
 
 private:
     bool m_IsInitialized = false;
+    bool m_IsPaused = false;
+    bool m_IsCursorLocked = false;
 
     Engine::Camera m_Camera;
     glm::vec3 m_CameraPosition{ 0.0f, 10.5f, 5.0f };

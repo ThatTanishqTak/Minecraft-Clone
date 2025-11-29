@@ -43,6 +43,18 @@ namespace Engine
         // Placeholder for future per-frame bookkeeping.
     }
 
+    void Input::ResetMouseTracking()
+    {
+        // Clear cached mouse position and deltas so camera look does not jump after cursor mode changes.
+        s_HasMousePosition = false;
+        s_MouseX = 0.0f;
+        s_MouseY = 0.0f;
+        s_MouseDeltaX = 0.0f;
+        s_MouseDeltaY = 0.0f;
+        s_ScrollDeltaX = 0.0f;
+        s_ScrollDeltaY = 0.0f;
+    }
+
     void Input::OnEvent(const Event& event)
     {
         // Previously traced every single event; removed to avoid log spam in hot paths.
