@@ -177,11 +177,7 @@ bool GameLayer::Initialize()
 
 void GameLayer::SetCursorLocked(bool isLocked)
 {
-    // Toggle GLFW cursor mode so mouse movement stays within the window or is released for UI use.
-    if (m_IsCursorLocked == isLocked)
-    {
-        return;
-    }
+    // Always re-apply the requested GLFW cursor mode because focus changes or window restores can reset it.
 
     GLFWwindow* l_CurrentWindow = glfwGetCurrentContext();
     if (l_CurrentWindow == nullptr)
@@ -195,7 +191,7 @@ void GameLayer::SetCursorLocked(bool isLocked)
 
     if (isLocked)
     {
-        // Clear mouse tracking so the next movement after locking does not produce a large jump.
+        // Clear mouse tracking so the next movement after locking does not produce a large jump even after focus toggles.
         Engine::Input::ResetMouseTracking();
     }
 
@@ -407,8 +403,32 @@ void GameLayer::Render()
 
 void GameLayer::OnEvent(const Engine::Event& event)
 {
-    // Future event handling can react to inputs; currently this layer logs handled events when needed.
-    GAME_TRACE("GameLayer received event type {}", static_cast<int>(event.GetEventType()));
+    // Re-apply cursor lock state when focus or window state changes to keep camera rotation unbounded.
+    switch (event.GetEventType())
+    {
+    case Engine::EventType::WindowFocusChanged:
+    {
+        const Engine::WindowFocusChangedEvent& l_FocusEvent = static_cast<const Engine::WindowFocusChangedEvent&>(event);
+        if (l_FocusEvent.IsFocused())
+        {
+            GAME_INFO("Window focus regained; enforcing cursor lock state");
+            SetCursorLocked(!m_IsPaused);
+        }
+
+        break;
+    }
+    case Engine::EventType::WindowMaximizeChanged:
+    {
+        const Engine::WindowMaximizeChangedEvent& l_MaximizeEvent = static_cast<const Engine::WindowMaximizeChangedEvent&>(event);
+        (void)l_MaximizeEvent;
+        GAME_INFO("Window maximized or restored; enforcing cursor lock state");
+        SetCursorLocked(!m_IsPaused);
+
+        break;
+    }
+    default:
+        break;
+    }
 }
 
 void GameLayer::Shutdown()

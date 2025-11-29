@@ -12,6 +12,8 @@ namespace Engine
         None = 0,
         WindowResize,
         WindowClose,
+        WindowFocusChanged,
+        WindowMaximizeChanged,
         KeyPressed,
         KeyReleased,
         MouseMoved,
@@ -93,6 +95,58 @@ namespace Engine
     // --------------------------------------
     // Application events
     // --------------------------------------
+    struct WindowFocusChangedEvent : public Event
+    {
+        explicit WindowFocusChangedEvent(bool isFocused) : m_IsFocused(isFocused)
+        {
+
+        }
+
+        bool IsFocused() const { return m_IsFocused; }
+
+        std::string ToString() const override
+        {
+            std::stringstream l_Stream;
+            l_Stream << "WindowFocusChanged: " << (m_IsFocused ? "Focused" : "Unfocused");
+
+            return l_Stream.str();
+        }
+
+        static EventType GetStaticType() { return EventType::WindowFocusChanged; }
+        EventType GetEventType() const override { return GetStaticType(); }
+        const char* GetName() const override { return "WindowFocusChanged"; }
+        int GetCategoryFlags() const override { return EventCategoryApplication; }
+
+    private:
+        bool m_IsFocused = false;
+    };
+
+    struct WindowMaximizeChangedEvent : public Event
+    {
+        explicit WindowMaximizeChangedEvent(bool isMaximized) : m_IsMaximized(isMaximized)
+        {
+
+        }
+
+        bool IsMaximized() const { return m_IsMaximized; }
+
+        std::string ToString() const override
+        {
+            std::stringstream l_Stream;
+            l_Stream << "WindowMaximizeChanged: " << (m_IsMaximized ? "Maximized" : "Restored");
+
+            return l_Stream.str();
+        }
+
+        static EventType GetStaticType() { return EventType::WindowMaximizeChanged; }
+        EventType GetEventType() const override { return GetStaticType(); }
+        const char* GetName() const override { return "WindowMaximizeChanged"; }
+        int GetCategoryFlags() const override { return EventCategoryApplication; }
+
+    private:
+        bool m_IsMaximized = false;
+    };
+
     struct WindowResizeEvent : public Event
     {
         WindowResizeEvent(int width, int height) : m_Width(width), m_Height(height)

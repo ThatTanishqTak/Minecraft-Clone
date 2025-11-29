@@ -53,6 +53,32 @@ namespace Engine
                 l_Window->m_EventCallback(l_Event);
             });
 
+        glfwSetWindowFocusCallback(m_Window, [](GLFWwindow* windowHandle, int focused)
+            {
+                Window* l_Window = static_cast<Window*>(glfwGetWindowUserPointer(windowHandle));
+                if (l_Window == nullptr || l_Window->m_EventCallback == nullptr)
+                {
+                    return;
+                }
+
+                const bool l_IsFocused = focused == GLFW_TRUE;
+                WindowFocusChangedEvent l_Event(l_IsFocused);
+                l_Window->m_EventCallback(l_Event);
+            });
+
+        glfwSetWindowMaximizeCallback(m_Window, [](GLFWwindow* windowHandle, int maximized)
+            {
+                Window* l_Window = static_cast<Window*>(glfwGetWindowUserPointer(windowHandle));
+                if (l_Window == nullptr || l_Window->m_EventCallback == nullptr)
+                {
+                    return;
+                }
+
+                const bool l_IsMaximized = maximized == GLFW_TRUE;
+                WindowMaximizeChangedEvent l_Event(l_IsMaximized);
+                l_Window->m_EventCallback(l_Event);
+            });
+
         glfwSetKeyCallback(m_Window, [](GLFWwindow* windowHandle, int key, int, int action, int mods)
             {
                 (void)mods;
