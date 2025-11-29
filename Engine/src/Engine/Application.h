@@ -3,7 +3,6 @@
 #include "Engine/Core/Core.h"
 #include "Engine/Core/Log.h"
 #include "Engine/Events/Events.h"
-#include "Engine/Renderer/Renderer.h"
 #include "Engine/Window/Window.h"
 #include "Engine/Layer/Layer.h"
 

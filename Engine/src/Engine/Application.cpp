@@ -92,14 +92,6 @@ namespace Engine
         // Enable depth testing to keep future 3D content ordering correct.
         glEnable(GL_DEPTH_TEST);
 
-        // Initialize the renderer after OpenGL context creation.
-        if (!Renderer::Initialize())
-        {
-            ENGINE_ERROR("Failed to initialize renderer");
-
-            return false;
-        }
-
         ENGINE_INFO("Application initialization completed successfully");
 
         return true;
@@ -111,9 +103,6 @@ namespace Engine
 
         // Ensure the gameplay layer is shut down before the renderer and window are destroyed.
         ShutdownGameLayer();
-
-        // Release GPU resources before tearing down the context.
-        Renderer::Shutdown();
 
         // Terminate GLFW if it was ever initialized to keep the shutdown path explicit.
         if (m_IsGlfwInitialized)
@@ -202,12 +191,8 @@ namespace Engine
             // Update the game state before rendering to ensure visuals reflect the latest logic.
             m_GameLayer->Update();
 
-            Renderer::BeginFrame();
-
             // Render the current frame from the game layer.
             m_GameLayer->Render();
-
-            Renderer::EndFrame();
 
             // Present the rendered frame to the screen.
             glfwSwapBuffers(m_Window.GetNativeWindow());
@@ -233,14 +218,11 @@ namespace Engine
             const WindowResizeEvent& l_ResizeEvent = static_cast<const WindowResizeEvent&>(event);
             const int l_NewWidth = l_ResizeEvent.GetWidth();
             const int l_NewHeight = l_ResizeEvent.GetHeight();
-
-            Renderer::OnWindowResize(l_NewWidth, l_NewHeight);
         }
 
         // Safely forward the event to the gameplay layer when it exists and is ready.
         if (m_IsGameLayerInitialized && m_GameLayer != nullptr)
         {
-            ENGINE_TRACE("Forwarding event to game layer");
             m_GameLayer->OnEvent(event);
         }
     }

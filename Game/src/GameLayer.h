@@ -2,16 +2,9 @@
 
 #include "Engine/Application.h"
 #include "Engine/Layer/Layer.h"
-#include "Engine/Renderer/Camera.h"
-#include "Engine/Renderer/Mesh.h"
-
-#include "WorldGeneration/Chunk.h"
-#include "WorldGeneration/ChunkMesher.h"
-#include "WorldGeneration/TextureAtlas.h"
-#include "WorldGeneration/World.h"
-#include "WorldGeneration/WorldGenerator.h"
 
 #include <glm/glm.hpp>
+
 #include <memory>
 #include <chrono>
 #include <limits>
@@ -37,31 +30,4 @@ public:
 
     // Release resources when shutting down.
     void Shutdown() override;
-
-private:
-    float CalculateSpawnHeightAboveTerrain() const;
-    glm::ivec3 CalculateChunkCoordinate(const glm::vec3& worldPosition) const;
-    void SetCursorLocked(bool isLocked);
-
-private:
-    bool m_IsInitialized = false;
-    bool m_IsPaused = false;
-    bool m_IsCursorLocked = false;
-
-    Engine::Camera m_Camera;
-    glm::vec3 m_CameraPosition{ 0.0f, 10.5f, 5.0f };
-    float m_CameraYawDegrees = -90.0f;
-    float m_CameraPitchDegrees = 0.0f;
-    float m_CameraFieldOfViewDegrees = 60.0f;
-    float m_CameraMoveSpeed = 15.0f;
-    float m_MouseSensitivity = 0.1f;
-
-    std::chrono::steady_clock::time_point m_LastFrameTimePoint{};
-    float m_DeltaTimeSeconds = 0.0f;
-
-    glm::ivec3 m_CurrentCameraChunkCoordinate{ std::numeric_limits<int>::min() };
-    std::unique_ptr<TextureAtlas> m_TextureAtlas;
-    std::unique_ptr<ChunkMesher> m_ChunkMesher;
-    std::unique_ptr<WorldGenerator> m_WorldGenerator;
-    std::unique_ptr<World> m_World;
 };
